@@ -1,0 +1,82 @@
+## 久坐提醒助手
+
+基于 Go + xcgui (WebView2) + React + shadcn/ui 的桌面久坐提醒应用。
+
+## 技术栈
+
+- **前端**: React 19 + TypeScript + Vite + shadcn/ui (base) + Tailwind CSS v4
+- **后端**: Go + xcgui (炫彩界面库) + WebView2
+
+## 项目结构
+
+```
+├── frontend/          # React 前端
+│   ├── src/
+│   │   ├── App.tsx              # 主界面
+│   │   ├── lib/bridge.ts        # Go <-> JS 通信桥接
+│   │   └── components/ui/       # shadcn 组件
+│   └── package.json
+├── backend/           # Go 后端
+│   ├── main.go                  # 主程序 (WebView2窗口、定时器、音频、配置)
+│   ├── go.mod
+│   └── dist/                    # 生产构建前端资源
+└── README.md
+```
+
+## 功能
+
+- **时间设置**: 间隔时间输入（默认40分钟），支持步进器(-10/-5/-1/+1/+5/+10)，失焦自动保存到 YAML 配置文件
+- **启停控制**: 启动/停止/暂停/继续按钮
+- **铃声设置**: 选择铃声文件、测试播放
+- **状态显示**: 当前状态、剩余时间、进度条可视化
+- **提醒通知**: 到时弹出醒目提醒，播放铃声(自动循环)，可手动停止
+- **稍后提醒**: 支持 5/10/15 分钟后再次提醒
+
+## 架构设计
+
+- 核心倒计时逻辑在 Go 后端（秒级 ticker），每秒通过 WebView Bridge 推送剩余时间到前端
+- 前端只负责 UI 渲染，不运行任何计时器
+- 铃声播放使用 Go 端 `wutil.AudioPlayer` (MCI)
+- 配置保存为 `config.yaml`，位于可执行文件同目录
+
+## 开发模式
+
+```bash
+# 1. 启动前端开发服务器
+cd frontend
+pnpm dev          # Vite 开发服务器 → http://localhost:5173
+
+# 2. 启动 Go 后端（连接 Vite 开发服务器，支持 HMR）
+cd backend
+go run .
+```
+
+Go 后端代码中 `isDebug = true` 时会连接 `http://localhost:5173`。
+
+## 生产构建
+
+```bash
+# 1. 构建前端
+cd frontend
+pnpm build
+
+# 2. 复制前端构建产物到后端
+Copy-Item -Recurse -Force dist ../backend/dist
+
+# 3. 修改 backend/main.go: isDebug = false
+
+# 4. 编译 Go 后端为单文件
+cd ../backend
+go build -ldflags="-s -w" -o health-reminder.exe
+```
+
+编译后得到单个 `health-reminder.exe`，内嵌了所有前端资源。
+
+## 配置文件
+
+`config.yaml`（自动生成，保存在 exe 同目录下）：
+
+```yaml
+interval_minutes: 40
+ringtone_path: C:\Users\xxx\Music\alarm.wav
+```
