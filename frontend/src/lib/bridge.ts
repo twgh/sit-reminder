@@ -14,7 +14,6 @@ declare global {
     api: {
       // 窗口控制
       minimize: () => Promise<void>
-      toggleMaximize: () => Promise<void>
       close: () => Promise<void>
       // 定时器
       startTimer: () => Promise<void>
@@ -67,7 +66,6 @@ async function callApi<T>(method: string, ...args: unknown[]): Promise<T | null>
 
 export const bridge = {
   minimize: () => callApi<void>("minimize"),
-  toggleMaximize: () => callApi<void>("toggleMaximize"),
   close: () => callApi<void>("close"),
   startTimer: () => callApi<void>("startTimer"),
   stopTimer: () => callApi<void>("stopTimer"),

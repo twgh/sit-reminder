@@ -67,9 +67,6 @@ type MainWindow struct {
 	timerType TimerType
 	remaining int
 	total     int
-
-	// snooze 标记：跳过 startTimer 中对 total 的重置
-	snoozeMode bool
 }
 
 func NewAppConfig() *AppConfig {
@@ -132,7 +129,7 @@ func NewMainWindow(edg *edge.Edge) *MainWindow {
 	var err error
 	m.w, m.wv, err = m.edg.NewWebViewWithWindow(
 		edge.WithXmlWindowTitle("久坐提醒助手"),
-		edge.WithXmlWindowSize(480, 680),
+		edge.WithXmlWindowSize(480, 820),
 		edge.WithFillParent(true),
 		edge.WithAppDrag(true),
 		edge.WithDebug(isDebug),
@@ -148,7 +145,7 @@ func NewMainWindow(edg *edge.Edge) *MainWindow {
 		os.Exit(1)
 	}
 
-	m.w.SetMinimumSize(420, 600)
+	m.w.SetMinimumSize(420, 700)
 
 	if !isDebug {
 		m.setupEmbedFS()
@@ -192,9 +189,7 @@ func (m *MainWindow) regWebViewEvents() {
 	m.wv.Event_NavigationCompleted(func(sender *edge.ICoreWebView2, args *edge.ICoreWebView2NavigationCompletedEventArgs) uintptr {
 		uri := sender.MustGetSource()
 		fmt.Println("导航完成:", uri)
-
-		expectedURL := m.getHost() + "/index.html"
-		if firstLoad && uri == expectedURL {
+		if firstLoad && uri == m.getHost()+"/index.html" {
 			firstLoad = false
 			m.w.Show(true)
 			m.pushConfig()
@@ -213,9 +208,6 @@ func (m *MainWindow) bindFunctions() {
 	m.wv.Bind("api.minimize", func() {
 		m.w.ShowWindow(xcc.SW_MINIMIZE)
 	})
-	m.wv.Bind("api.toggleMaximize", func() {
-		m.w.MaxWindow(!m.w.IsMaxWindow())
-	})
 	m.wv.Bind("api.close", func() {
 		m.w.CloseWindow()
 	})
@@ -233,17 +225,21 @@ func (m *MainWindow) bindFunctions() {
 	m.wv.Bind("api.resumeTimer", func() {
 		m.resumeTimer()
 	})
-	m.wv.Bind("api.setInterval", func(minutes int) {
+
+	// 设置间隔（使用 float64 接收 JS number，避免 JSON 类型转换问题）
+	m.wv.Bind("api.setInterval", func(minutes float64) {
 		m.mu.Lock()
-		m.config.IntervalMinutes = minutes
+		m.config.IntervalMinutes = int(minutes)
 		if m.state == StateIdle {
-			m.total = minutes * 60
+			m.total = int(minutes) * 60
 			m.remaining = m.total
 		}
 		m.mu.Unlock()
 	})
-	m.wv.Bind("api.snooze", func(minutes int) {
-		m.snooze(minutes)
+
+	// 稍后提醒（使用 float64）
+	m.wv.Bind("api.snooze", func(minutes float64) {
+		m.snooze(int(minutes))
 	})
 
 	// ===== 活动倒计时 =====
@@ -283,8 +279,9 @@ func (m *MainWindow) bindFunctions() {
 	})
 }
 
-// ==================== 定时器逻辑 ====================
+// ==================== 定时器 ====================
 
+// startTimer 启动普通计时（暂停后恢复也用此方法）
 func (m *MainWindow) startTimer(typ TimerType) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -295,25 +292,40 @@ func (m *MainWindow) startTimer(typ TimerType) {
 
 	m.timerType = typ
 
-	// snooze/activity 模式已设置好 total/remaining，不重置
-	if !m.snoozeMode && m.state != StatePaused {
-		if typ == TimerActivity {
-			m.total = 5 * 60 // 活动倒计时固定5分钟
-		} else {
-			m.total = m.config.IntervalMinutes * 60
-		}
+	if m.state != StatePaused {
+		m.total = m.config.IntervalMinutes * 60
 		m.remaining = m.total
 	}
-	m.snoozeMode = false
 
 	m.state = StateRunning
 	m.done = make(chan struct{})
 
 	go m.runTimerLoop()
 
-	// 立即推送初始状态到前端（避免前端显示错误的进度）
-	m.wv.Eval(fmt.Sprintf("window.__timerTick && __timerTick(%d, %d)", m.remaining, m.total))
-	m.evalStatusChanged("running")
+	// 合并 __timerTick 和 __statusChanged 到一个 Eval，防止 React 中间态渲染
+	script := fmt.Sprintf("(function(){window.__timerTick&&__timerTick(%d,%d);window.__statusChanged&&__statusChanged('running')})()", m.remaining, m.total)
+	m.wv.Eval(script)
+}
+
+// startTimerWithTotal 以指定秒数启动计时（用于 snooze / activity）
+func (m *MainWindow) startTimerWithTotal(typ TimerType, totalSec int) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	if m.state == StateRunning {
+		return
+	}
+
+	m.timerType = typ
+	m.total = totalSec
+	m.remaining = totalSec
+	m.state = StateRunning
+	m.done = make(chan struct{})
+
+	go m.runTimerLoop()
+
+	script := fmt.Sprintf("(function(){window.__timerTick&&__timerTick(%d,%d);window.__statusChanged&&__statusChanged('running')})()", m.remaining, m.total)
+	m.wv.Eval(script)
 }
 
 func (m *MainWindow) stopTimer() {
@@ -337,9 +349,8 @@ func (m *MainWindow) stopTimer() {
 	}
 	m.state = StateIdle
 	m.timerType = TimerRegular
-	m.snoozeMode = false
-	m.remaining = m.config.IntervalMinutes * 60
-	m.total = m.remaining
+	m.total = m.config.IntervalMinutes * 60
+	m.remaining = m.total
 	m.mu.Unlock()
 
 	xc.UI(func() {
@@ -388,16 +399,10 @@ func (m *MainWindow) snooze(minutes int) {
 	if m.timer != nil {
 		m.timer.Stop()
 	}
-	m.timerType = TimerSnooze
-	m.snoozeMode = true // 阻止 startTimer 重置 total
-	m.total = minutes * 60
-	m.remaining = m.total
 	m.mu.Unlock()
 
-	m.wv.Eval(fmt.Sprintf("window.__timerTick && __timerTick(%d, %d)", m.remaining, m.total))
-	m.evalStatusChanged("idle")
-
-	m.startTimer(TimerSnooze)
+	// 直接使用 startTimerWithTotal，不再依赖 snoozeMode 标志
+	m.startTimerWithTotal(TimerSnooze, minutes*60)
 }
 
 func (m *MainWindow) startActivityTimer() {
@@ -408,17 +413,13 @@ func (m *MainWindow) startActivityTimer() {
 	if m.timer != nil {
 		m.timer.Stop()
 	}
-	m.timerType = TimerActivity
-	m.snoozeMode = true
-	m.total = 5 * 60
-	m.remaining = m.total
 	m.mu.Unlock()
 
-	// 通知前端进入活动倒计时状态
+	// 通知前端进入活动倒计时
 	m.wv.Eval("window.__activityStarted && __activityStarted()")
-	m.wv.Eval(fmt.Sprintf("window.__timerTick && __timerTick(%d, %d)", m.remaining, m.total))
 
-	m.startTimer(TimerActivity)
+	// 使用 startTimerWithTotal 启动5分钟活动倒计时
+	m.startTimerWithTotal(TimerActivity, 5*60)
 }
 
 func (m *MainWindow) runTimerLoop() {
@@ -507,8 +508,7 @@ func (m *MainWindow) evalStatusChanged(status string) {
 
 func (m *MainWindow) selectRingtone() string {
 	path := wutil.OpenFile(0, []string{
-		"音频文件(*.mp3;*.wav;*.aac;*.ogg;*.flac)", "*.mp3;*.wav;*.aac;*.ogg;*.flac",
-		"All Files(*.*)", "*.*",
+		"音频文件(*.mp3;*.wav;*.wma)", "*.mp3;*.wav;*.wma",
 	}, "%USERPROFILE%\\Music")
 	if path == "" {
 		return m.config.RingtonePath
@@ -529,9 +529,7 @@ func (m *MainWindow) testRingtone() {
 		return
 	}
 	vol := 800
-	if err := m.ap.Play(wutil.PlayOptions{Volume: &vol, Wait: false, Repeat: false, SeekToStart: true}); err != nil {
-		log.Printf("测试播放失败: %v", err)
-	}
+	_ = m.ap.Play(wutil.PlayOptions{Volume: &vol, Wait: false, Repeat: false, SeekToStart: true})
 }
 
 func (m *MainWindow) playRingtone() {
@@ -546,9 +544,7 @@ func (m *MainWindow) playRingtone() {
 		return
 	}
 	vol := 1000
-	if err := m.ap.Play(wutil.PlayOptions{Volume: &vol, Wait: false, Repeat: true, SeekToStart: true}); err != nil {
-		log.Printf("播放提醒铃声失败: %v", err)
-	}
+	_ = m.ap.Play(wutil.PlayOptions{Volume: &vol, Wait: false, Repeat: true, SeekToStart: true})
 }
 
 func (m *MainWindow) stopRingtone() {
@@ -588,13 +584,11 @@ func (m *MainWindow) testActivityRingtone() {
 	}
 	m.closeActivityAudio()
 	if err := m.ap2.Open(path); err != nil {
-		log.Printf("打开铃声文件失败: %v", err)
+		log.Printf("打开活动铃声失败: %v", err)
 		return
 	}
 	vol := 800
-	if err := m.ap2.Play(wutil.PlayOptions{Volume: &vol, Wait: false, Repeat: false, SeekToStart: true}); err != nil {
-		log.Printf("测试播放失败: %v", err)
-	}
+	_ = m.ap2.Play(wutil.PlayOptions{Volume: &vol, Wait: false, Repeat: false, SeekToStart: true})
 }
 
 func (m *MainWindow) playActivityRingtone() {
@@ -611,9 +605,7 @@ func (m *MainWindow) playActivityRingtone() {
 		return
 	}
 	vol := 1000
-	if err := m.ap2.Play(wutil.PlayOptions{Volume: &vol, Wait: false, Repeat: true, SeekToStart: true}); err != nil {
-		log.Printf("播放活动铃声失败: %v", err)
-	}
+	_ = m.ap2.Play(wutil.PlayOptions{Volume: &vol, Wait: false, Repeat: true, SeekToStart: true})
 }
 
 func (m *MainWindow) stopActivityRingtone() {

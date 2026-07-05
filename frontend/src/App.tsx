@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Progress, ProgressValue, ProgressTrack, ProgressIndicator } from "@/components/ui/progress"
+import { Progress, ProgressValue } from "@/components/ui/progress"
 import { Separator } from "@/components/ui/separator"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import {
@@ -15,9 +15,7 @@ import {
   Volume2Icon,
   BellIcon,
   ClockIcon,
-  TimerIcon,
   MinusIcon,
-  Maximize2Icon,
   XIcon,
   DumbbellIcon,
 } from "lucide-react"
@@ -42,7 +40,7 @@ function StatusBadge({ status }: { status: TimerStatus }) {
   return <Badge variant={variant}>{label}</Badge>
 }
 
-// 提醒通知浮层 — 久坐时间到了
+// 久坐提醒通知浮层
 function NotificationOverlay({
   visible,
   onStopAndReset,
@@ -63,8 +61,8 @@ function NotificationOverlay({
           <div className="mx-auto mb-3 flex size-16 items-center justify-center rounded-full bg-destructive/10">
             <BellIcon className="size-8 text-destructive" />
           </div>
-          <CardTitle className="text-xl">该起来活动一下了！</CardTitle>
-          <CardDescription>久坐对健康不利，站起来走走吧！</CardDescription>
+          <CardTitle className="text-xl select-none">该起来活动一下了！</CardTitle>
+          <CardDescription className="select-none">久坐对健康不利，站起来走走吧！</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
           <Button size="lg" className="w-full" onClick={onStopAndReset}>
@@ -77,17 +75,11 @@ function NotificationOverlay({
           </Button>
           <Separator />
           <div className="flex flex-col gap-2">
-            <p className="text-center text-xs text-muted-foreground">稍后提醒</p>
+            <p className="text-center text-xs text-muted-foreground select-none">稍后提醒</p>
             <div className="flex gap-2">
-              <Button variant="outline" className="flex-1" size="sm" onClick={() => onSnooze(5)}>
-                5 分钟
-              </Button>
-              <Button variant="outline" className="flex-1" size="sm" onClick={() => onSnooze(10)}>
-                10 分钟
-              </Button>
-              <Button variant="outline" className="flex-1" size="sm" onClick={() => onSnooze(15)}>
-                15 分钟
-              </Button>
+              <Button variant="outline" className="flex-1" size="sm" onClick={() => onSnooze(5)}>5 分钟</Button>
+              <Button variant="outline" className="flex-1" size="sm" onClick={() => onSnooze(10)}>10 分钟</Button>
+              <Button variant="outline" className="flex-1" size="sm" onClick={() => onSnooze(15)}>15 分钟</Button>
             </div>
           </div>
         </CardContent>
@@ -113,8 +105,8 @@ function ActivityDoneOverlay({
           <div className="mx-auto mb-3 flex size-16 items-center justify-center rounded-full bg-primary/10">
             <DumbbellIcon className="size-8 text-primary" />
           </div>
-          <CardTitle className="text-xl">运动完成！</CardTitle>
-          <CardDescription>活动时间结束，该回去继续工作啦~</CardDescription>
+          <CardTitle className="text-xl select-none">运动完成！</CardTitle>
+          <CardDescription className="select-none">活动时间结束，该回去继续工作啦~</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
           <Button size="lg" className="w-full" onClick={onStopAndReset}>
@@ -137,7 +129,7 @@ export function App() {
   const [finishType, setFinishType] = useState<TimerFinishType>("regular")
   const [notificationVisible, setNotificationVisible] = useState(false)
 
-  // 初始化
+  // 初始化全局回调
   useEffect(() => {
     window.__timerTick = (remaining: number, total: number) => {
       setRemainingSeconds(remaining)
@@ -153,9 +145,7 @@ export function App() {
 
     window.__statusChanged = (s: TimerStatus) => {
       setStatus(s)
-      if (s !== "finished") {
-        setNotificationVisible(false)
-      }
+      if (s !== "finished") setNotificationVisible(false)
     }
 
     window.__configLoaded = (config: AppConfig) => {
@@ -180,12 +170,14 @@ export function App() {
     })
   }, [])
 
-  // 启动常规计时
+  // 启动计时（预置剩余秒数防闪屏）
   const handleStart = useCallback(async () => {
+    setRemainingSeconds(totalSeconds)
+    setStatus("running")
     await bridge.startTimer()
-  }, [])
+  }, [totalSeconds])
 
-  // 停止并重置
+  // 停止并重置到空闲态
   const handleStopAndReset = useCallback(async () => {
     await bridge.stopTimer()
     setStatus("idle")
@@ -245,22 +237,17 @@ export function App() {
     }
   }, [])
 
-  const handleTestRingtone = useCallback(async () => {
-    await bridge.testRingtone()
-  }, [])
+  // 测试提醒铃声
+  const handleTestRingtone = useCallback(async () => { await bridge.testRingtone() }, [])
 
   // 选择活动铃声
   const handleSelectActivityRingtone = useCallback(async () => {
     const path = await bridge.selectActivityRingtone()
-    if (path) {
-      setActivityRingtonePath(path)
-      await bridge.saveConfig()
-    }
+    if (path) { setActivityRingtonePath(path); await bridge.saveConfig() }
   }, [])
 
-  const handleTestActivityRingtone = useCallback(async () => {
-    await bridge.testActivityRingtone()
-  }, [])
+  // 测试活动铃声
+  const handleTestActivityRingtone = useCallback(async () => { await bridge.testActivityRingtone() }, [])
 
   // 开始活动倒计时
   const handleStartActivity = useCallback(async () => {
@@ -289,21 +276,23 @@ export function App() {
 
   return (
     <TooltipProvider>
-      <div className="flex min-h-svh flex-col">
-        {/* 可拖动的标题栏 */}
+      <div className="flex min-h-svh flex-col select-none">
+        {/* 可拖动标题栏 */}
         <div
           className="flex h-9 shrink-0 items-center justify-between border-b bg-muted/30 px-2"
           style={{ WebkitAppRegion: "drag" } as React.CSSProperties}
         >
-          <span className="select-none px-2 text-xs text-muted-foreground">久坐提醒助手</span>
+          <span className="px-2 text-xs text-muted-foreground">久坐提醒助手</span>
           <div className="flex items-center" style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}>
             <Button variant="ghost" size="icon" className="size-8 rounded-none" onClick={() => bridge.minimize()}>
               <MinusIcon className="size-3.5" />
             </Button>
-            <Button variant="ghost" size="icon" className="size-8 rounded-none" onClick={() => bridge.toggleMaximize()}>
-              <Maximize2Icon className="size-3.5" />
-            </Button>
-            <Button variant="ghost" size="icon" className="size-8 rounded-none hover:bg-destructive hover:text-destructive-foreground" onClick={() => bridge.close()}>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-8 rounded-none hover:bg-destructive hover:text-destructive-foreground"
+              onClick={() => bridge.close()}
+            >
               <XIcon className="size-3.5" />
             </Button>
           </div>
@@ -331,7 +320,7 @@ export function App() {
               )}
             </div>
 
-            {/* 进度条 (单条，Progress组件自带Track) */}
+            {/* 进度条 */}
             <Progress value={status === "idle" ? 0 : progressPercent}>
               <ProgressValue className="tabular-nums" />
             </Progress>
@@ -343,7 +332,7 @@ export function App() {
                 <CardDescription>设置提醒间隔时间</CardDescription>
               </CardHeader>
               <CardContent className="flex flex-col gap-3">
-                <div className="flex flex-1 items-center gap-1">
+                <div className="flex gap-1">
                   {stepperButtons.map((b) => (
                     <Button
                       key={b.label}
@@ -364,10 +353,7 @@ export function App() {
                     max={999}
                     value={intervalMinutes}
                     disabled={status === "running"}
-                    onChange={(e) => {
-                      const v = parseInt(e.target.value) || 0
-                      setIntervalMinutes(v)
-                    }}
+                    onChange={(e) => setIntervalMinutes(parseInt(e.target.value) || 0)}
                     onBlur={() => handleIntervalChange(intervalMinutes)}
                     className="w-24 text-center"
                   />
@@ -437,12 +423,10 @@ export function App() {
                 <Separator />
                 <div className="flex gap-2">
                   <Button variant="outline" className="flex-1" size="sm" onClick={handleSelectRingtone}>
-                    <MusicIcon data-icon="inline-start" />
-                    选择铃声
+                    <MusicIcon data-icon="inline-start" />选择铃声
                   </Button>
                   <Button variant="secondary" className="flex-1" size="sm" onClick={handleTestRingtone}>
-                    <Volume2Icon data-icon="inline-start" />
-                    测试播放
+                    <Volume2Icon data-icon="inline-start" />测试播放
                   </Button>
                 </div>
               </CardContent>
@@ -462,12 +446,10 @@ export function App() {
                 <Separator />
                 <div className="flex gap-2">
                   <Button variant="outline" className="flex-1" size="sm" onClick={handleSelectActivityRingtone}>
-                    <MusicIcon data-icon="inline-start" />
-                    选择铃声
+                    <MusicIcon data-icon="inline-start" />选择铃声
                   </Button>
                   <Button variant="secondary" className="flex-1" size="sm" onClick={handleTestActivityRingtone}>
-                    <Volume2Icon data-icon="inline-start" />
-                    测试播放
+                    <Volume2Icon data-icon="inline-start" />测试播放
                   </Button>
                 </div>
               </CardContent>
