@@ -508,7 +508,7 @@ func (m *MainWindow) evalStatusChanged(status string) {
 
 func (m *MainWindow) selectRingtone() string {
 	path := wutil.OpenFile(0, []string{
-		"音频文件(*.mp3;*.wav;*.wma)", "*.mp3;*.wav;*.wma",
+		"音频文件(*.mp3;*.wma)", "*.mp3;*.wma",
 	}, "%USERPROFILE%\\Music")
 	if path == "" {
 		return m.config.RingtonePath
