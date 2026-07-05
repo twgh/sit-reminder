@@ -30,3 +30,4 @@ skills-lock.json
 scripts/archive.bat
 *.yaml
 go.work
+*.syso
