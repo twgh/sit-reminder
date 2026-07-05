@@ -4,7 +4,7 @@ chcp 65001 >nul
 echo 开始编译【久坐提醒助手】 ...
 cd /d "%~dp0..\backend"
 
-set "filename=health-reminder-dev.exe"
+set "filename=sit-reminder-dev.exe"
 go build -o ../bin/%filename%
 
 if %errorlevel%==0 (
