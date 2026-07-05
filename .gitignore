@@ -27,3 +27,5 @@ backend/dist/
 
 # File
 skills-lock.json
+scripts/archive.bat
+*.yaml
