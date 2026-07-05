@@ -14,8 +14,7 @@
 # vendor/
 
 # Build output
-frontend/dist/
-backend/dist/
+dist
 
 # Folder
 .idea/
