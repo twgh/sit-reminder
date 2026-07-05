@@ -29,3 +29,4 @@ backend/dist/
 skills-lock.json
 scripts/archive.bat
 *.yaml
+go.work
