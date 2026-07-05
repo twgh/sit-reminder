@@ -52,7 +52,7 @@ async function callApi<T>(method: string, ...args: unknown[]): Promise<T | null>
     return null
   }
   try {
-    const fn = (window.api as Record<string, (...args: unknown[]) => Promise<T>>)[method]
+    const fn = (window.api as unknown as Record<string, (...args: unknown[]) => Promise<T>>)[method]
     if (!fn) {
       console.warn(`[Bridge] Method "${method}" not found`)
       return null
