@@ -72,4 +72,4 @@ build_backend.bat
 build_all.bat
 ```
 
-编译后得到单个 `health-reminder.exe`，内嵌了所有前端资源。
+编译后得到单个 `sit-reminder.exe`，内嵌了所有前端资源。

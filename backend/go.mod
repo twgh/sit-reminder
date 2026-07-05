@@ -1,4 +1,4 @@
-module github.com/twgh/health-reminder
+module github.com/twgh/sit-reminder
 
 go 1.26.4
 
