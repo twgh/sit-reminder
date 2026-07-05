@@ -29,7 +29,7 @@
 - **启停控制**: 启动/停止/暂停/继续按钮
 - **铃声设置**: 选择铃声文件、测试播放
 - **状态显示**: 当前状态、剩余时间、进度条可视化
-- **提醒通知**: 到时弹出醒目提醒，播放铃声(自动循环)，可手动停止
+- **提醒通知**: 到时弹出醒目提醒，播放铃声(自动循环)，可手动停止, 可开启活动倒计时
 - **稍后提醒**: 支持 5/10/15 分钟后再次提醒
 
 ## 架构设计
@@ -42,13 +42,17 @@
 ## 开发模式
 
 ```bash
+# 进入脚本目录
+cd scripts
+
 # 1. 启动前端开发服务器
-cd frontend
-pnpm dev          # Vite 开发服务器 → http://localhost:5173
+start_frontend_dev.bat
 
 # 2. 启动 Go 后端（连接 Vite 开发服务器，支持 HMR）
-cd backend
-go run .
+start_backend_dev.bat
+
+# 或者两个都启动
+run_both_dev.bat
 ```
 
 Go 后端代码中 `isDebug = true` 时会连接 `http://localhost:5173`。
@@ -56,27 +60,16 @@ Go 后端代码中 `isDebug = true` 时会连接 `http://localhost:5173`。
 ## 生产构建
 
 ```bash
+cd scripts
+
 # 1. 构建前端
-cd frontend
-pnpm build
+build_frontend.bat
 
-# 2. 复制前端构建产物到后端
-Copy-Item -Recurse -Force dist ../backend/dist
+# 2. 编译 Go 后端
+build_backend.bat
 
-# 3. 修改 backend/main.go: isDebug = false
-
-# 4. 编译 Go 后端为单文件
-cd ../backend
-go build -ldflags="-s -w" -o health-reminder.exe
+# 或者前端和后端一起编译
+build_all.bat
 ```
 
 编译后得到单个 `health-reminder.exe`，内嵌了所有前端资源。
-
-## 配置文件
-
-`config.yaml`（自动生成，保存在 exe 同目录下）：
-
-```yaml
-interval_minutes: 40
-ringtone_path: C:\Users\xxx\Music\alarm.wav
-```
