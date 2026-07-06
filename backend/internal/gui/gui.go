@@ -508,7 +508,7 @@ func (m *MainWindow) evalStatusChanged(status string) {
 // ==================== 提醒铃声 ====================
 
 func (m *MainWindow) selectRingtone() string {
-	path := wutil.OpenFile(0, []string{
+	path := wutil.OpenFile(m.w.Handle, []string{
 		"音频文件(*.mp3;*.wma)", "*.mp3;*.wma",
 	}, "%USERPROFILE%\\Music")
 	if path == "" {
@@ -564,7 +564,7 @@ func (m *MainWindow) closeAudio() {
 // ==================== 活动结束铃声 ====================
 
 func (m *MainWindow) selectActivityRingtone() string {
-	path := wutil.OpenFile(0, []string{
+	path := wutil.OpenFile(m.w.Handle, []string{
 		"音频文件(*.mp3;*.wma)", "*.mp3;*.wma",
 	}, "%USERPROFILE%\\Music")
 	if path == "" {
