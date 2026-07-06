@@ -13,6 +13,7 @@ import (
 	"github.com/twgh/sit-reminder/internal/config"
 	"github.com/twgh/sit-reminder/internal/g"
 	"github.com/twgh/xcgui/app"
+	"github.com/twgh/xcgui/common"
 	"github.com/twgh/xcgui/edge"
 	"github.com/twgh/xcgui/wapi"
 	"github.com/twgh/xcgui/wapi/wutil"
@@ -65,16 +66,14 @@ type MainWindow struct {
 
 // configPath 返回配置文件路径
 func (m *MainWindow) configPath() string {
-	exe, err := os.Executable()
-	if err != nil {
-		exe = "."
-	}
-	return filepath.Join(filepath.Dir(exe), "config.yaml")
+	confgDir := filepath.Join(os.Getenv("APPDATA"), g.AppName)
+	return filepath.Join(confgDir, "config.yaml")
 }
 
 // loadConfig 加载配置文件
 func (m *MainWindow) loadConfig() {
 	path := m.configPath()
+	os.MkdirAll(filepath.Dir(path), 0755)
 	data, err := os.ReadFile(path)
 	if err != nil {
 		m.config = config.NewAppConfig()
@@ -118,8 +117,8 @@ func NewMainWindow(edg *edge.Edge) *MainWindow {
 	var err error
 	m.w, m.wv, err = m.edg.NewWebViewWithWindow(
 		edge.WithXmlWindowTitle("久坐提醒助手"),
-		edge.WithXmlWindowClassName("sit-reminder"),
-		edge.WithXmlWindowSize(480, 890),
+		edge.WithXmlWindowClassName(g.AppName),
+		edge.WithXmlWindowSize(480, 880),
 		edge.WithFillParent(true),
 		edge.WithAppDrag(true),
 		edge.WithDebug(g.IsDebug()),
@@ -135,6 +134,12 @@ func NewMainWindow(edg *edge.Edge) *MainWindow {
 		os.Exit(1)
 	}
 
+	// 从资源中加载程序图标
+	hAppIcon := wapi.LoadImageW(wapi.GetModuleHandleW(""), common.StrPtr("APPICON"), wapi.IMAGE_ICON, 0, 0, wapi.LR_SHARED|wapi.LR_DEFAULTSIZE)
+	// 设置任务栏预览窗口左上角的图标
+	m.w.SetSmallIcon(hAppIcon)
+
+	// 禁止拖拽边框改变窗口大小
 	m.w.EnableDragBorder(false)
 
 	if !g.IsDebug() {
@@ -617,7 +622,7 @@ func (m *MainWindow) closeActivityAudio() {
 
 func createEdge() *edge.Edge {
 	edg, err := edge.New(edge.Option{
-		UserDataFolder: os.Getenv("APPDATA") + "\\sit-reminder",
+		UserDataFolder: filepath.Join(os.Getenv("APPDATA"), g.AppName),
 		EnvOptions: &edge.EnvOptions{
 			DisableTrackingPrevention: true,
 			ScrollBarStyle:            edge.COREWEBVIEW2_SCROLLBAR_STYLE_FLUENT_OVERLAY,
