@@ -17,9 +17,21 @@
 │   │   └── components/ui/       # shadcn 组件
 │   └── package.json
 ├── backend/           # Go 后端
-│   ├── main.go                  # 主程序 (WebView2窗口、定时器、音频、配置)
+│   ├── main.go                  # 程序入口
 │   ├── go.mod
-│   └── dist/                    # 生产构建前端资源
+│   └── winres/                  # 程序图标, 版本信息
+│   └── internal/                # 内部包
+│       ├── config/              # 配置包
+│       ├── gui/                 # 程序 GUI 界面
+│       ├── utils/               # 工具包
+│       └── g/                   # 全局变量
+├── scripts/           # 脚本目录
+│   ├── build_all.bat           # 编译前端和后端
+│   ├── build_backend.bat       # 编译后端
+│   ├── build_frontend.bat      # 编译前端
+│   ├── run_both_dev.bat        # 同时启动前端开发服务器和后端
+│   ├── start_backend_dev.bat   # 启动后端开发版本
+│   └── start_frontend_dev.bat  # 启动前端开发服务器
 └── README.md
 ```
 
@@ -55,7 +67,7 @@ start_backend_dev.bat
 run_both_dev.bat
 ```
 
-Go 后端代码中 `isDebug = true` 时会连接 `http://localhost:5173`。
+Go 后端代码中 `g.IsDebug() = true` 时会连接 `http://localhost:5173`。
 
 ## 生产构建
 
@@ -72,4 +84,4 @@ build_backend.bat
 build_all.bat
 ```
 
-编译后得到单个 `sit-reminder.exe`，内嵌了所有前端资源。
+编译后得到单个exe，内嵌了所有前端资源。
