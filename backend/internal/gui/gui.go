@@ -565,8 +565,7 @@ func (m *MainWindow) closeAudio() {
 
 func (m *MainWindow) selectActivityRingtone() string {
 	path := wutil.OpenFile(0, []string{
-		"音频文件(*.mp3;*.wav;*.aac;*.ogg;*.flac)", "*.mp3;*.wav;*.aac;*.ogg;*.flac",
-		"All Files(*.*)", "*.*",
+		"音频文件(*.mp3;*.wma)", "*.mp3;*.wma",
 	}, "%USERPROFILE%\\Music")
 	if path == "" {
 		return m.config.ActivityRingtonePath
