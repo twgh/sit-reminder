@@ -26,12 +26,13 @@
 │       ├── utils/               # 工具包
 │       └── g/                   # 全局变量
 ├── scripts/           # 脚本目录
-│   ├── build_all.bat           # 编译前端和后端
-│   ├── build_backend.bat       # 编译后端
+│   ├── build_all.bat           # 编译前端和后端正式版
+│   ├── build_backend.bat       # 编译后端正式版
 │   ├── build_frontend.bat      # 编译前端
-│   ├── run_both_dev.bat        # 同时启动前端开发服务器和后端
-│   ├── start_backend_dev.bat   # 启动后端开发版本
-│   └── start_frontend_dev.bat  # 启动前端开发服务器
+│   ├── build_run_backend.bat   # 编译后端正式版并运行
+│   ├── dev_run_all.bat         # 同时启动前端开发服务器和后端开发版本
+│   ├── dev_start_backend.bat   # 启动后端开发版本
+│   └── dev_start_frontend.bat  # 启动前端开发服务器
 └── README.md
 ```
 
@@ -39,9 +40,9 @@
 
 - **时间设置**: 间隔时间输入（默认40分钟），支持步进器(-10/-5/-1/+1/+5/+10)，失焦自动保存到 YAML 配置文件
 - **启停控制**: 启动/停止/暂停/继续按钮
-- **铃声设置**: 选择铃声文件、测试播放
 - **状态显示**: 当前状态、剩余时间、进度条可视化
-- **提醒通知**: 到时弹出醒目提醒，播放铃声(自动循环)，可手动停止, 可开启活动倒计时
+- **铃声设置**: 选择铃声文件、测试播放
+- **提醒通知**: 到时弹出醒目提醒，播放铃声(循环)，可手动停止, 可开启活动倒计时
 - **稍后提醒**: 支持 5/10/15 分钟后再次提醒
 
 ## 架构设计
@@ -49,7 +50,6 @@
 - 核心倒计时逻辑在 Go 后端（秒级 ticker），每秒通过 WebView Bridge 推送剩余时间到前端
 - 前端只负责 UI 渲染，不运行任何计时器
 - 铃声播放使用 Go 端 `wutil.AudioPlayer` (MCI)
-- 配置保存为 `config.yaml`，位于可执行文件同目录
 
 ## 开发模式
 
@@ -58,13 +58,13 @@
 cd scripts
 
 # 1. 启动前端开发服务器
-start_frontend_dev.bat
+dev_start_frontend.bat
 
 # 2. 启动 Go 后端（连接 Vite 开发服务器，支持 HMR）
-start_backend_dev.bat
+dev_start_backend.bat
 
 # 或者两个都启动
-run_both_dev.bat
+dev_run_all.bat
 ```
 
 Go 后端代码中 `g.IsDebug() = true` 时会连接 `http://localhost:5173`。
