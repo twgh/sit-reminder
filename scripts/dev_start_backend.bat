@@ -18,4 +18,4 @@ if %errorlevel%==0 (
     echo 编译失败!
 )
 
-pause
+exit
