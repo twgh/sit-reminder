@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Progress, ProgressValue } from "@/components/ui/progress"
 import { Separator } from "@/components/ui/separator"
+import { Slider } from "@/components/ui/slider"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import {
   PlayIcon,
@@ -22,7 +23,7 @@ import {
   ArrowLeftIcon,
   DumbbellIcon,
 } from "lucide-react"
-import { bridge, type AppConfig, type TimerStatus, type TimerFinishType } from "@/lib/bridge"
+import { bridge, type AppConfig, type TimerStatus, type TimerFinishType, type TimerType } from "@/lib/bridge"
 
 const DEFAULT_RINGTONE = "未设置"
 
@@ -72,7 +73,7 @@ function NotificationOverlay({
           <CardDescription className="select-none">久坐对健康不利，站起来走走吧！</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
-          <Button size="lg" className="w-full" onClick={onStopAndReset}>
+          <Button variant="secondary" size="lg" className="w-full" onClick={onStopAndReset}>
             <SquareIcon data-icon="inline-start" />
             停止并返回
           </Button>
@@ -89,7 +90,7 @@ function NotificationOverlay({
             />
             <span className="text-sm text-muted-foreground">分钟</span>
           </div>
-          <Button variant="secondary" size="lg" className="w-full" onClick={onStartActivity}>
+          <Button size="lg" className="w-full" onClick={onStartActivity}>
             <DumbbellIcon data-icon="inline-start" />
             开始{activityMinutes}分钟活动倒计时
           </Button>
@@ -151,26 +152,45 @@ function SettingsPage({
   activityRingtonePath,
   isTestPlaying,
   isActivityTestPlaying,
+  activityMinutes,
+  volume,
   onSelectRingtone,
   onTestRingtone,
   onStopRingtone,
   onSelectActivityRingtone,
   onTestActivityRingtone,
   onStopActivityRingtone,
+  onActivityMinutesChange,
+  onVolumeChange,
   onBack,
 }: {
   ringtonePath: string
   activityRingtonePath: string
   isTestPlaying: boolean
   isActivityTestPlaying: boolean
+  activityMinutes: number
+  volume: number
   onSelectRingtone: () => void
   onTestRingtone: () => void
   onStopRingtone: () => void
   onSelectActivityRingtone: () => void
   onTestActivityRingtone: () => void
   onStopActivityRingtone: () => void
+  onActivityMinutesChange: (value: number) => void
+  onVolumeChange: (value: number) => void
   onBack: () => void
 }) {
+  // 音量在 UI 上使用 0-100 的百分比，配置中存储 0-1000
+  const volumePercent = Math.round(volume / 10)
+
+  // 活动时间步进按钮
+  const activitySteppers = [
+    { label: "-5", delta: -5 },
+    { label: "-1", delta: -1 },
+    { label: "+1", delta: 1 },
+    { label: "+5", delta: 5 },
+  ]
+
   return (
     <div className="flex flex-1 items-start justify-center p-4">
       <div className="flex w-full max-w-md flex-col gap-4">
@@ -188,7 +208,7 @@ function SettingsPage({
         {/* 提醒铃声设置 */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">提醒铃声</CardTitle>
+            <CardTitle className="text-base">久坐提醒铃声</CardTitle>
             <CardDescription>久坐提醒时播放的铃声</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
@@ -242,6 +262,64 @@ function SettingsPage({
             </div>
           </CardContent>
         </Card>
+
+        {/* 活动时间设置 */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">活动时间</CardTitle>
+            <CardDescription>久坐提醒后的活动时长</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3">
+            <div className="flex gap-1">
+              {activitySteppers.map((b) => (
+                <Button
+                  key={b.label}
+                  variant="outline"
+                  size="sm"
+                  className="h-7 flex-1 px-0 text-xs"
+                  onClick={() => onActivityMinutesChange(activityMinutes + b.delta)}
+                >
+                  {b.label}
+                </Button>
+              ))}
+            </div>
+            <div className="flex items-center gap-2">
+              <Input
+                type="number"
+                min={1}
+                max={99}
+                value={activityMinutes}
+                onChange={(e) => onActivityMinutesChange(parseInt(e.target.value) || 1)}
+                onBlur={() => onActivityMinutesChange(activityMinutes)}
+                className="w-24 text-center"
+              />
+              <span className="text-sm text-muted-foreground">分钟</span>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* 音量设置 */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">音量</CardTitle>
+            <CardDescription>铃声播放时使用的音量</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3">
+            <div className="flex items-center gap-3">
+              <VolumeXIcon className="size-4 shrink-0 text-muted-foreground" />
+              <Slider
+                value={[volumePercent]}
+                min={0}
+                max={100}
+                step={1}
+                onValueChange={(v) => onVolumeChange((Array.isArray(v) ? v[0] : v) * 10)}
+                className="flex-1"
+              />
+              <Volume2Icon className="size-4 shrink-0 text-muted-foreground" />
+              <span className="w-10 text-right text-sm tabular-nums text-muted-foreground">{volumePercent}%</span>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   )
@@ -255,11 +333,13 @@ export function App() {
   const [ringtonePath, setRingtonePath] = useState(DEFAULT_RINGTONE)
   const [activityRingtonePath, setActivityRingtonePath] = useState(DEFAULT_RINGTONE)
   const [finishType, setFinishType] = useState<TimerFinishType>("regular")
+  const [timerType, setTimerType] = useState<TimerType>("regular")
   const [notificationVisible, setNotificationVisible] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [isTestPlaying, setIsTestPlaying] = useState(false)
   const [isActivityTestPlaying, setIsActivityTestPlaying] = useState(false)
   const [activityMinutes, setActivityMinutes] = useState(5)
+  const [volume, setVolume] = useState(1000)
 
   // 初始化全局回调
   useEffect(() => {
@@ -285,11 +365,25 @@ export function App() {
       setTotalSeconds(config.intervalMinutes * 60)
       setRingtonePath(config.ringtonePath || DEFAULT_RINGTONE)
       setActivityRingtonePath(config.activityRingtonePath || DEFAULT_RINGTONE)
+      if (config.activityMinutes && config.activityMinutes > 0) {
+        setActivityMinutes(config.activityMinutes)
+      }
+      if (typeof config.volume === "number") {
+        setVolume(config.volume)
+      }
     }
 
     window.__activityStarted = (_minutes: number) => {
       setNotificationVisible(false)
       setStatus("running")
+    }
+
+    window.__timerTypeChanged = (type: TimerType) => {
+      setTimerType(type)
+    }
+
+    window.__showSettings = () => {
+      setShowSettings(true)
     }
 
     bridge.getConfig().then((config) => {
@@ -298,6 +392,12 @@ export function App() {
         setTotalSeconds(config.intervalMinutes * 60)
         setRingtonePath(config.ringtonePath || DEFAULT_RINGTONE)
         setActivityRingtonePath(config.activityRingtonePath || DEFAULT_RINGTONE)
+        if (config.activityMinutes && config.activityMinutes > 0) {
+          setActivityMinutes(config.activityMinutes)
+        }
+        if (typeof config.volume === "number") {
+          setVolume(config.volume)
+        }
       }
     })
   }, [])
@@ -422,6 +522,22 @@ export function App() {
     setIsActivityTestPlaying(false)
   }, [])
 
+  // 修改活动时间（设置页面）
+  const handleActivityMinutesChange = useCallback(async (value: number) => {
+    const clamped = Math.max(1, Math.min(99, value))
+    setActivityMinutes(clamped)
+    await bridge.setActivityMinutes(clamped)
+    await bridge.saveConfig()
+  }, [])
+
+  // 修改音量（设置页面），UI 百分比 0-100 映射到配置 0-1000
+  const handleVolumeChange = useCallback(async (value: number) => {
+    const clamped = Math.max(0, Math.min(1000, value))
+    setVolume(clamped)
+    await bridge.setVolume(clamped)
+    await bridge.saveConfig()
+  }, [])
+
   // 开始活动倒计时（使用自定义分钟数）
   const handleStartActivity = useCallback(async () => {
     await bridge.startActivityTimerWithMinutes(activityMinutes)
@@ -486,12 +602,16 @@ export function App() {
             activityRingtonePath={activityRingtonePath}
             isTestPlaying={isTestPlaying}
             isActivityTestPlaying={isActivityTestPlaying}
+            activityMinutes={activityMinutes}
+            volume={volume}
             onSelectRingtone={handleSelectRingtone}
             onTestRingtone={handleTestRingtone}
             onStopRingtone={handleStopRingtone}
             onSelectActivityRingtone={handleSelectActivityRingtone}
             onTestActivityRingtone={handleTestActivityRingtone}
             onStopActivityRingtone={handleStopActivityRingtone}
+            onActivityMinutesChange={handleActivityMinutesChange}
+            onVolumeChange={handleVolumeChange}
             onBack={() => setShowSettings(false)}
           />
         ) : (
@@ -509,10 +629,17 @@ export function App() {
 
               {/* 状态显示 */}
               <div className="flex items-center justify-between">
-                <StatusBadge status={status} />
+                <div className="flex items-center gap-2">
+                  <StatusBadge status={status} />
+                  {status === "running" && timerType !== "regular" && (
+                    <span className="text-xs text-muted-foreground">
+                      {timerType === "activity" ? "活动倒计时" : "稍后提醒"}
+                    </span>
+                  )}
+                </div>
                 {status === "running" && (
                   <span className="text-sm tabular-nums text-muted-foreground">
-                    下次提醒: {formatTime(remainingSeconds)}
+                    {timerType === "activity" ? "活动结束" : "下次提醒"}: {formatTime(remainingSeconds)}
                   </span>
                 )}
               </div>
@@ -526,7 +653,7 @@ export function App() {
               <Card>
                 <CardHeader>
                   <CardTitle className="text-base">时间设置</CardTitle>
-                  <CardDescription>设置提醒间隔时间</CardDescription>
+                  <CardDescription>设置久坐提醒间隔时间</CardDescription>
                 </CardHeader>
                 <CardContent className="flex flex-col gap-3">
                   <div className="flex gap-1">

@@ -4,10 +4,13 @@ export interface AppConfig {
   intervalMinutes: number
   ringtonePath: string
   activityRingtonePath: string
+  activityMinutes: number
+  volume: number
 }
 
 export type TimerStatus = "idle" | "running" | "paused" | "finished"
 export type TimerFinishType = "regular" | "snooze" | "activity"
+export type TimerType = "regular" | "snooze" | "activity"
 
 declare global {
   interface Window {
@@ -34,12 +37,16 @@ declare global {
       // 配置
       getConfig: () => Promise<AppConfig>
       saveConfig: () => Promise<void>
+      setActivityMinutes: (minutes: number) => Promise<void>
+      setVolume: (volume: number) => Promise<void>
     }
     __timerTick: (remainingSeconds: number, totalSeconds: number) => void
     __timerFinished: (type: TimerFinishType) => void
     __statusChanged: (status: TimerStatus) => void
     __configLoaded: (config: AppConfig) => void
     __activityStarted: (minutes: number) => void
+    __timerTypeChanged: (type: TimerType) => void
+    __showSettings: () => void
   }
 }
 
@@ -83,4 +90,6 @@ export const bridge = {
   testActivityRingtone: () => callApi<void>("testActivityRingtone"),
   getConfig: () => callApi<AppConfig>("getConfig"),
   saveConfig: () => callApi<void>("saveConfig"),
+  setActivityMinutes: (minutes: number) => callApi<void>("setActivityMinutes", minutes),
+  setVolume: (volume: number) => callApi<void>("setVolume", volume),
 }

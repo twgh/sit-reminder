@@ -30,7 +30,7 @@ func (m *MainWindow) testRingtone() {
 		log.Printf("打开铃声文件失败: %v", err)
 		return
 	}
-	_ = m.ap.Play(wutil.PlayOptions{Volume: new(1000), Wait: false, Repeat: false, SeekToStart: true})
+	_ = m.ap.Play(wutil.PlayOptions{Volume: new(m.config.Volume), Wait: false, Repeat: false, SeekToStart: true})
 }
 
 func (m *MainWindow) playRingtone() {
@@ -44,7 +44,7 @@ func (m *MainWindow) playRingtone() {
 		log.Printf("打开铃声失败: %v", err)
 		return
 	}
-	_ = m.ap.Play(wutil.PlayOptions{Volume: new(1000), Wait: false, Repeat: true, SeekToStart: true})
+	_ = m.ap.Play(wutil.PlayOptions{Volume: new(m.config.Volume), Wait: false, Repeat: true, SeekToStart: true})
 }
 
 func (m *MainWindow) stopRingtone() {
@@ -86,7 +86,7 @@ func (m *MainWindow) testActivityRingtone() {
 		log.Printf("打开活动铃声失败: %v", err)
 		return
 	}
-	_ = m.ap2.Play(wutil.PlayOptions{Volume: new(1000), Wait: false, Repeat: false, SeekToStart: true})
+	_ = m.ap2.Play(wutil.PlayOptions{Volume: new(m.config.Volume), Wait: false, Repeat: false, SeekToStart: true})
 }
 
 func (m *MainWindow) playActivityRingtone() {
@@ -102,7 +102,7 @@ func (m *MainWindow) playActivityRingtone() {
 		m.playRingtone()
 		return
 	}
-	_ = m.ap2.Play(wutil.PlayOptions{Volume: new(1000), Wait: false, Repeat: true, SeekToStart: true})
+	_ = m.ap2.Play(wutil.PlayOptions{Volume: new(m.config.Volume), Wait: false, Repeat: true, SeekToStart: true})
 }
 
 func (m *MainWindow) stopActivityRingtone() {

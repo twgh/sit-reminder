@@ -20,6 +20,9 @@ import (
 	"github.com/twgh/xcgui/xcc"
 )
 
+// suspendDelay 挂起延迟时间
+const suspendDelay = 10 * time.Second
+
 type TimerState int
 
 const (
@@ -55,18 +58,23 @@ type MainWindow struct {
 	timerType TimerType
 	remaining int
 	total     int
+
+	suspendMu    sync.Mutex
+	suspendTimer *time.Timer
+	suspendDelay time.Duration
 }
 
 func NewMainWindow(edg *edge.Edge) *MainWindow {
 	m := &MainWindow{
-		edg:      edg,
-		ap:       wutil.NewAudioPlayer(),
-		ap2:      wutil.NewAudioPlayer(),
-		config:   config.LoadConfig(),
-		done:     make(chan struct{}),
-		pauseCh:  make(chan struct{}),
-		resumeCh: make(chan struct{}),
-		state:    StateIdle,
+		edg:          edg,
+		ap:           wutil.NewAudioPlayer(),
+		ap2:          wutil.NewAudioPlayer(),
+		config:       config.LoadConfig(),
+		done:         make(chan struct{}),
+		pauseCh:      make(chan struct{}),
+		resumeCh:     make(chan struct{}),
+		state:        StateIdle,
+		suspendDelay: suspendDelay,
 	}
 
 	var err error
@@ -124,8 +132,10 @@ func NewMainWindow(edg *edge.Edge) *MainWindow {
 func (m *MainWindow) regXcEvents() {
 	// 窗口关闭事件
 	m.w.AddEvent_Close(func(hWindow int, pbHandled *bool) int {
-		*pbHandled = true           // 拦截
+		*pbHandled = true // 拦截
+		m.wv.Eval("document.activeElement && document.activeElement.blur()")
 		m.w.ShowWindow(xcc.SW_HIDE) // 隐藏窗口
+		m.startSuspendTimer()       // 挂起 WebView 以节省内存
 		return 0
 	})
 
@@ -137,6 +147,8 @@ func (m *MainWindow) regXcEvents() {
 		switch xcc.WM_(lParam) {
 		case xcc.WM_LBUTTONDOWN: // 鼠标左键按下
 			m.w.ShowWindow(xcc.SW_RESTORE)
+			m.cancelSuspendTimer()
+			m.doResume()
 		case xcc.WM_RBUTTONDOWN: // 鼠标右键按下
 			// 创建菜单
 			menu := widget.NewMenu()
@@ -158,7 +170,9 @@ func (m *MainWindow) regXcEvents() {
 		switch nID {
 		case 100: // 设置
 			m.w.ShowWindow(xcc.SW_RESTORE)
-			// todo: 打开设置页面
+			m.cancelSuspendTimer()
+			m.doResume()
+			m.wv.Eval("window.__showSettings && window.__showSettings()")
 
 		case 99999: // 退出
 			m.w.DestroyWindow() // 销毁窗口
@@ -231,7 +245,7 @@ func (m *MainWindow) bindFunctions() {
 
 	// ===== 活动倒计时 =====
 	m.wv.Bind("api.startActivityTimer", func() {
-		m.startActivityTimer(5)
+		m.startActivityTimer(m.config.ActivityMinutes)
 	})
 	m.wv.Bind("api.startActivityTimerWithMinutes", func(minutes float64) {
 		m.startActivityTimer(int(minutes))
@@ -266,5 +280,15 @@ func (m *MainWindow) bindFunctions() {
 			log.Println("保存配置失败:", err)
 		}
 		fmt.Println("配置已保存到", config.ConfigPath())
+	})
+	m.wv.Bind("api.setActivityMinutes", func(minutes float64) {
+		m.mu.Lock()
+		m.config.ActivityMinutes = int(minutes)
+		m.mu.Unlock()
+	})
+	m.wv.Bind("api.setVolume", func(volume float64) {
+		m.mu.Lock()
+		m.config.Volume = int(volume)
+		m.mu.Unlock()
 	})
 }

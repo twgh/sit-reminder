@@ -32,6 +32,7 @@ func (m *MainWindow) startTimer(typ TimerType) {
 	// 合并 __timerTick 和 __statusChanged 到一个 Eval，防止 React 中间态渲染
 	script := fmt.Sprintf("(function(){window.__timerTick&&__timerTick(%d,%d);window.__statusChanged&&__statusChanged('running')})()", m.remaining, m.total)
 	m.wv.Eval(script)
+	m.evalTimerTypeChanged(typ)
 }
 
 // startTimerWithTotal 以指定秒数启动计时（用于 snooze / activity）
@@ -53,6 +54,7 @@ func (m *MainWindow) startTimerWithTotal(typ TimerType, totalSec int) {
 
 	script := fmt.Sprintf("(function(){window.__timerTick&&__timerTick(%d,%d);window.__statusChanged&&__statusChanged('running')})()", m.remaining, m.total)
 	m.wv.Eval(script)
+	m.evalTimerTypeChanged(typ)
 }
 
 func (m *MainWindow) stopTimer() {
@@ -82,6 +84,7 @@ func (m *MainWindow) stopTimer() {
 
 	xc.UI(func() {
 		m.evalStatusChanged("idle")
+		m.evalTimerTypeChanged(TimerRegular)
 		// 通知前端重置进度显示
 		m.wv.Eval(fmt.Sprintf("window.__timerTick && __timerTick(%d, %d)", m.remaining, m.total))
 	})
@@ -233,6 +236,23 @@ func (m *MainWindow) runTimerLoop() {
 
 func (m *MainWindow) evalStatusChanged(status string) {
 	m.wv.Eval(fmt.Sprintf("window.__statusChanged && __statusChanged('%s')", status))
+}
+
+// timerTypeStr 将 TimerType 转换为前端可识别的字符串
+func timerTypeStr(t TimerType) string {
+	switch t {
+	case TimerActivity:
+		return "activity"
+	case TimerSnooze:
+		return "snooze"
+	default:
+		return "regular"
+	}
+}
+
+// evalTimerTypeChanged 通知前端当前倒计时类型已改变
+func (m *MainWindow) evalTimerTypeChanged(t TimerType) {
+	m.wv.Eval(fmt.Sprintf("window.__timerTypeChanged && __timerTypeChanged('%s')", timerTypeStr(t)))
 }
 
 // activateWindow 提醒时激活窗口到前台

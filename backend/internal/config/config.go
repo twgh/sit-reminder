@@ -12,6 +12,8 @@ type AppConfig struct {
 	IntervalMinutes      int    `yaml:"interval_minutes" json:"intervalMinutes"`
 	RingtonePath         string `yaml:"ringtone_path" json:"ringtonePath"`
 	ActivityRingtonePath string `yaml:"activity_ringtone_path" json:"activityRingtonePath"`
+	ActivityMinutes      int    `yaml:"activity_minutes" json:"activityMinutes"`
+	Volume               int    `yaml:"volume" json:"volume"`
 }
 
 func NewAppConfig() *AppConfig {
@@ -19,6 +21,8 @@ func NewAppConfig() *AppConfig {
 		IntervalMinutes:      40,
 		RingtonePath:         "",
 		ActivityRingtonePath: "",
+		ActivityMinutes:      5,
+		Volume:               1000,
 	}
 }
 
@@ -42,6 +46,15 @@ func LoadConfig() *AppConfig {
 	}
 	if cfg.IntervalMinutes < 1 {
 		cfg.IntervalMinutes = 1
+	}
+	if cfg.ActivityMinutes < 1 {
+		cfg.ActivityMinutes = 1
+	}
+	if cfg.Volume < 0 {
+		cfg.Volume = 0
+	}
+	if cfg.Volume > 1000 {
+		cfg.Volume = 1000
 	}
 	return cfg
 }

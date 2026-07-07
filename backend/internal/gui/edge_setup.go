@@ -6,7 +6,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"sync"
 	"syscall"
 	"time"
 
@@ -57,10 +56,6 @@ func (m *MainWindow) saveMemory() {
 		m.wv.WebView2_19.SetMemoryUsageTargetLevel(edge.COREWEBVIEW2_MEMORY_USAGE_TARGET_LEVEL_LOW)
 	}
 
-	var mu sync.Mutex
-	var suspendTimer *time.Timer
-	var suspendTime = 10 * time.Second
-
 	m.w.AddEvent_WindProc(func(hWindow int, message uint32, wParam, lParam uintptr, pbHandled *bool) int {
 		if m.wv.Controller == nil { // WebView 未创建或已被销毁
 			return 0
@@ -69,49 +64,73 @@ func (m *MainWindow) saveMemory() {
 		if message == wapi.WM_SIZE {
 			switch wParam {
 			case wapi.SIZE_MINIMIZED: // 窗口最小化
-				mu.Lock()
-				defer mu.Unlock()
-				// 设置定时器
-				if suspendTimer != nil {
-					suspendTimer.Stop()
-				}
-				suspendTimer = time.AfterFunc(suspendTime, func() {
-					xc.UI(func() { // 需在 UI 线程操作 WebView
-						// 挂起前要隐藏 WebView 才行
-						m.wv.Show(false)
-
-						err := m.wv.TrySuspend(func(errorCode syscall.Errno, isSuccessful bool) uintptr {
-							if !wapi.IsOK(errorCode) || !isSuccessful {
-								log.Println("挂起失败, errorCode:", errorCode, ", isSuccessful:", isSuccessful)
-							} else {
-								fmt.Println("挂起成功")
-							}
-							return 0
-						})
-						if err != nil {
-							log.Println("执行 TrySuspend 失败, err:", err)
-						}
-					})
-				})
+				m.startSuspendTimer()
 
 			case wapi.SIZE_RESTORED: // 窗口恢复
-				mu.Lock()
-				defer mu.Unlock()
-				// 取消挂起定时器
-				if suspendTimer != nil {
-					suspendTimer.Stop()
-					suspendTimer = nil
-				}
-
-				if m.wv.IsSuspended() {
-					m.wv.Resume()
-					m.wv.Show(true)
-					fmt.Println("从挂起状态恢复正常")
-				}
+				m.cancelSuspendTimer()
+				m.doResume()
 			}
 		}
 		return 0
 	})
+}
+
+// startSuspendTimer 启动挂起定时器（延迟后挂起 WebView）
+func (m *MainWindow) startSuspendTimer() {
+	m.suspendMu.Lock()
+	defer m.suspendMu.Unlock()
+
+	if m.suspendTimer != nil {
+		m.suspendTimer.Stop()
+	}
+	m.suspendTimer = time.AfterFunc(m.suspendDelay, func() {
+		xc.UI(func() { // 需在 UI 线程操作 WebView
+			m.doSuspend()
+		})
+	})
+}
+
+// cancelSuspendTimer 取消挂起定时器
+func (m *MainWindow) cancelSuspendTimer() {
+	m.suspendMu.Lock()
+	defer m.suspendMu.Unlock()
+
+	if m.suspendTimer != nil {
+		m.suspendTimer.Stop()
+		m.suspendTimer = nil
+	}
+}
+
+// doSuspend 执行 WebView 挂起
+func (m *MainWindow) doSuspend() {
+	if m.wv.IsSuspended() {
+		return // 已挂起，避免不必要的 COM 调用
+	}
+	// 挂起前要隐藏 WebView 才行
+	m.wv.Show(false)
+
+	err := m.wv.TrySuspend(func(errorCode syscall.Errno, isSuccessful bool) uintptr {
+		// 当前最新的回调
+		if !wapi.IsOK(errorCode) || !isSuccessful {
+			log.Println("挂起失败, errorCode:", errorCode, ", isSuccessful:", isSuccessful)
+		} else {
+			fmt.Println("挂起成功")
+		}
+		// 过期的累积回调，静默忽略
+		return 0
+	})
+	if err != nil {
+		log.Println("执行 TrySuspend 失败, err:", err)
+	}
+}
+
+// doResume 从挂起状态恢复
+func (m *MainWindow) doResume() {
+	if m.wv.IsSuspended() {
+		m.wv.Resume()
+		m.wv.Show(true)
+		fmt.Println("从挂起状态恢复正常")
+	}
 }
 
 func createEdge() *edge.Edge {
