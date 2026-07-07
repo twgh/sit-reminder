@@ -10,10 +10,12 @@ import (
 
 	"github.com/twgh/sit-reminder/internal/config"
 	"github.com/twgh/sit-reminder/internal/g"
+	"github.com/twgh/xcgui/app"
 	"github.com/twgh/xcgui/common"
 	"github.com/twgh/xcgui/edge"
 	"github.com/twgh/xcgui/wapi"
 	"github.com/twgh/xcgui/wapi/wutil"
+	"github.com/twgh/xcgui/widget"
 	"github.com/twgh/xcgui/window"
 	"github.com/twgh/xcgui/xcc"
 )
@@ -42,6 +44,7 @@ type MainWindow struct {
 	ap     *wutil.AudioPlayer // 提醒铃声
 	ap2    *wutil.AudioPlayer // 活动结束铃声
 	config *config.AppConfig
+	tray   *window.TrayIcon // 托盘图标
 
 	mu        sync.Mutex
 	timer     *time.Ticker
@@ -86,13 +89,21 @@ func NewMainWindow(edg *edge.Edge) *MainWindow {
 		os.Exit(1)
 	}
 
+	// 禁止拖拽边框改变窗口大小
+	m.w.EnableDragBorder(false)
+
 	// 从资源中加载程序图标
 	hIconApp := wapi.LoadImageW(wapi.GetModuleHandleW(""), common.StrPtr("APPICON"), wapi.IMAGE_ICON, 0, 0, wapi.LR_SHARED|wapi.LR_DEFAULTSIZE)
 	// 设置任务栏预览窗口左上角的图标
 	m.w.SetSmallIcon(hIconApp)
 
-	// 禁止拖拽边框改变窗口大小
-	m.w.EnableDragBorder(false)
+	// 创建托盘图标
+	m.tray = m.w.CreateTrayIcon(hIconApp, "久坐提醒助手")
+	// 显示托盘图标
+	m.tray.Show()
+
+	// 注册炫彩事件
+	m.regXcEvents()
 
 	if !g.IsDebug() {
 		m.setupEmbedFS()
@@ -107,6 +118,54 @@ func NewMainWindow(edg *edge.Edge) *MainWindow {
 	m.bindFunctions()
 	m.wv.Navigate(m.getHost() + "/index.html")
 	return m
+}
+
+// regXcEvents 注册炫彩事件
+func (m *MainWindow) regXcEvents() {
+	// 窗口关闭事件
+	m.w.AddEvent_Close(func(hWindow int, pbHandled *bool) int {
+		*pbHandled = true           // 拦截
+		m.w.ShowWindow(xcc.SW_HIDE) // 隐藏窗口
+		return 0
+	})
+
+	// 托盘图标事件
+	m.w.AddEvent_TrayIcon(func(wParam, lParam uintptr, pbHandled *bool) int {
+		if int32(wParam) != m.tray.Id { // 不是自定义的托盘图标唯一标识符.
+			return 0
+		}
+		switch xcc.WM_(lParam) {
+		case xcc.WM_LBUTTONDOWN: // 鼠标左键按下
+			m.w.ShowWindow(xcc.SW_RESTORE)
+		case xcc.WM_RBUTTONDOWN: // 鼠标右键按下
+			// 创建菜单
+			menu := widget.NewMenu()
+			// 一级菜单
+			menu.AddItem(100, "设置", 0, xcc.Menu_Item_Flag_Normal)
+			menu.AddItem(99999, "退出", 0, xcc.Menu_Item_Flag_Normal)
+
+			// 获取鼠标光标的屏幕坐标
+			var pt wapi.POINT
+			wapi.GetCursorPos(&pt)
+			// 弹出菜单
+			menu.Popup(m.w.GetHWND(), pt.X, pt.Y+30, 0, xcc.Menu_Popup_Position_Left_Top)
+		}
+		return 0
+	})
+
+	// 菜单被选择事件
+	m.w.AddEvent_Menu_Select(func(hWindow int, nID int32, pbHandled *bool) int {
+		switch nID {
+		case 100: // 设置
+			m.w.ShowWindow(xcc.SW_RESTORE)
+			// todo: 打开设置页面
+
+		case 99999: // 退出
+			m.w.DestroyWindow() // 销毁窗口
+			app.PostQuitMessage(0)
+		}
+		return 0
+	})
 }
 
 // regWebViewEvents 注册 WebView 事件
