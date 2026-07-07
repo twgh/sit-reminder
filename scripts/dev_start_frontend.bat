@@ -2,7 +2,22 @@
 chcp 65001 >nul
 
 echo 启动前端 ...
+REM 进入前端目录
 cd /d "%~dp0..\frontend"
+
+REM 检查 node_modules 是否存在
+if not exist "node_modules" (
+    echo 首次运行，正在安装依赖...
+    call pnpm install
+    if errorlevel 1 (
+        echo 安装依赖失败！
+        pause
+        exit /b 1
+    )
+) else (
+    echo 依赖已安装
+)
+
 
 :: 检测 5173 端口是否被占用
 netstat -ano | findstr ":5173" | findstr "LISTENING" >nul
