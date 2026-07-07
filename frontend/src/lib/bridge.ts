@@ -23,6 +23,7 @@ declare global {
       setInterval: (minutes: number) => Promise<void>
       snooze: (minutes: number) => Promise<void>
       startActivityTimer: () => Promise<void>
+      startActivityTimerWithMinutes: (minutes: number) => Promise<void>
       // 提醒铃声
       selectRingtone: () => Promise<string>
       testRingtone: () => Promise<void>
@@ -38,7 +39,7 @@ declare global {
     __timerFinished: (type: TimerFinishType) => void
     __statusChanged: (status: TimerStatus) => void
     __configLoaded: (config: AppConfig) => void
-    __activityStarted: () => void
+    __activityStarted: (minutes: number) => void
   }
 }
 
@@ -74,6 +75,7 @@ export const bridge = {
   setInterval: (minutes: number) => callApi<void>("setInterval", minutes),
   snooze: (minutes: number) => callApi<void>("snooze", minutes),
   startActivityTimer: () => callApi<void>("startActivityTimer"),
+  startActivityTimerWithMinutes: (minutes: number) => callApi<void>("startActivityTimerWithMinutes", minutes),
   selectRingtone: () => callApi<string>("selectRingtone"),
   testRingtone: () => callApi<void>("testRingtone"),
   stopRingtone: () => callApi<void>("stopRingtone"),

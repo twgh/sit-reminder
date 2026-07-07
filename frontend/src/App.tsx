@@ -13,10 +13,13 @@ import {
   SkipForwardIcon,
   MusicIcon,
   Volume2Icon,
+  VolumeXIcon,
   BellIcon,
   ClockIcon,
   MinusIcon,
   XIcon,
+  SettingsIcon,
+  ArrowLeftIcon,
   DumbbellIcon,
 } from "lucide-react"
 import { bridge, type AppConfig, type TimerStatus, type TimerFinishType } from "@/lib/bridge"
@@ -46,11 +49,15 @@ function NotificationOverlay({
   onStopAndReset,
   onStartActivity,
   onSnooze,
+  activityMinutes,
+  setActivityMinutes,
 }: {
   visible: boolean
   onStopAndReset: () => void
   onStartActivity: () => void
   onSnooze: (minutes: number) => void
+  activityMinutes: number
+  setActivityMinutes: (v: number) => void
 }) {
   if (!visible) return null
 
@@ -69,9 +76,22 @@ function NotificationOverlay({
             <SquareIcon data-icon="inline-start" />
             停止并返回
           </Button>
+          {/* 活动时间设置 */}
+          <div className="flex items-center justify-center gap-2">
+            <span className="text-sm text-muted-foreground">活动时间:</span>
+            <Input
+              type="number"
+              min={1}
+              max={99}
+              value={activityMinutes}
+              onChange={(e) => setActivityMinutes(Math.max(1, Math.min(99, parseInt(e.target.value) || 1)))}
+              className="w-20 text-center"
+            />
+            <span className="text-sm text-muted-foreground">分钟</span>
+          </div>
           <Button variant="secondary" size="lg" className="w-full" onClick={onStartActivity}>
             <DumbbellIcon data-icon="inline-start" />
-            开始5分钟活动倒计时
+            开始{activityMinutes}分钟活动倒计时
           </Button>
           <Separator />
           <div className="flex flex-col gap-2">
@@ -91,10 +111,12 @@ function NotificationOverlay({
 // 活动结束通知浮层
 function ActivityDoneOverlay({
   visible,
-  onStopAndReset,
+  onStopOnly,
+  onStopAndStartNext,
 }: {
   visible: boolean
-  onStopAndReset: () => void
+  onStopOnly: () => void
+  onStopAndStartNext: () => void
 }) {
   if (!visible) return null
 
@@ -109,12 +131,118 @@ function ActivityDoneOverlay({
           <CardDescription className="select-none">活动时间结束，该回去继续工作啦~</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
-          <Button size="lg" className="w-full" onClick={onStopAndReset}>
+          <Button variant="secondary" size="lg" className="w-full" onClick={onStopOnly}>
             <SquareIcon data-icon="inline-start" />
-            停止并启动下一次提醒
+            停止
+          </Button>
+          <Button size="lg" className="w-full" onClick={onStopAndStartNext}>
+            <SkipForwardIcon data-icon="inline-start" />
+            开始下一次提醒
           </Button>
         </CardContent>
       </Card>
+    </div>
+  )
+}
+
+// 设置页面
+function SettingsPage({
+  ringtonePath,
+  activityRingtonePath,
+  isTestPlaying,
+  isActivityTestPlaying,
+  onSelectRingtone,
+  onTestRingtone,
+  onStopRingtone,
+  onSelectActivityRingtone,
+  onTestActivityRingtone,
+  onStopActivityRingtone,
+  onBack,
+}: {
+  ringtonePath: string
+  activityRingtonePath: string
+  isTestPlaying: boolean
+  isActivityTestPlaying: boolean
+  onSelectRingtone: () => void
+  onTestRingtone: () => void
+  onStopRingtone: () => void
+  onSelectActivityRingtone: () => void
+  onTestActivityRingtone: () => void
+  onStopActivityRingtone: () => void
+  onBack: () => void
+}) {
+  return (
+    <div className="flex flex-1 items-start justify-center p-4">
+      <div className="flex w-full max-w-md flex-col gap-4">
+        {/* 返回按钮 + 标题 */}
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" className="size-8" onClick={onBack}>
+            <ArrowLeftIcon className="size-4" />
+          </Button>
+          <h2 className="flex items-center gap-2 font-heading text-lg font-semibold">
+            <SettingsIcon className="size-5 text-primary" />
+            设置
+          </h2>
+        </div>
+
+        {/* 提醒铃声设置 */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">提醒铃声</CardTitle>
+            <CardDescription>久坐提醒时播放的铃声</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <MusicIcon className="size-4 shrink-0" />
+              <span className="flex-1 truncate">{ringtonePath}</span>
+            </div>
+            <Separator />
+            <div className="flex gap-2">
+              <Button variant="outline" className="flex-1" size="sm" onClick={onSelectRingtone}>
+                <MusicIcon data-icon="inline-start" />选择铃声
+              </Button>
+              {isTestPlaying ? (
+                <Button variant="destructive" className="flex-1" size="sm" onClick={onStopRingtone}>
+                  <VolumeXIcon data-icon="inline-start" />停止播放
+                </Button>
+              ) : (
+                <Button variant="secondary" className="flex-1" size="sm" onClick={onTestRingtone}>
+                  <Volume2Icon data-icon="inline-start" />测试播放
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* 活动结束铃声设置 */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">活动结束铃声</CardTitle>
+            <CardDescription>活动倒计时结束时播放</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <MusicIcon className="size-4 shrink-0" />
+              <span className="flex-1 truncate">{activityRingtonePath}</span>
+            </div>
+            <Separator />
+            <div className="flex gap-2">
+              <Button variant="outline" className="flex-1" size="sm" onClick={onSelectActivityRingtone}>
+                <MusicIcon data-icon="inline-start" />选择铃声
+              </Button>
+              {isActivityTestPlaying ? (
+                <Button variant="destructive" className="flex-1" size="sm" onClick={onStopActivityRingtone}>
+                  <VolumeXIcon data-icon="inline-start" />停止播放
+                </Button>
+              ) : (
+                <Button variant="secondary" className="flex-1" size="sm" onClick={onTestActivityRingtone}>
+                  <Volume2Icon data-icon="inline-start" />测试播放
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }
@@ -128,6 +256,10 @@ export function App() {
   const [activityRingtonePath, setActivityRingtonePath] = useState(DEFAULT_RINGTONE)
   const [finishType, setFinishType] = useState<TimerFinishType>("regular")
   const [notificationVisible, setNotificationVisible] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
+  const [isTestPlaying, setIsTestPlaying] = useState(false)
+  const [isActivityTestPlaying, setIsActivityTestPlaying] = useState(false)
+  const [activityMinutes, setActivityMinutes] = useState(5)
 
   // 初始化全局回调
   useEffect(() => {
@@ -155,7 +287,7 @@ export function App() {
       setActivityRingtonePath(config.activityRingtonePath || DEFAULT_RINGTONE)
     }
 
-    window.__activityStarted = () => {
+    window.__activityStarted = (_minutes: number) => {
       setNotificationVisible(false)
       setStatus("running")
     }
@@ -186,6 +318,26 @@ export function App() {
     setNotificationVisible(false)
     setFinishType("regular")
   }, [intervalMinutes])
+
+  // 停止活动铃声但不开始下一次提醒
+  const handleStopOnly = useCallback(async () => {
+    await bridge.stopTimer()
+    setStatus("idle")
+    setRemainingSeconds(intervalMinutes * 60)
+    setTotalSeconds(intervalMinutes * 60)
+    setNotificationVisible(false)
+    setFinishType("regular")
+  }, [intervalMinutes])
+
+  // 停止活动铃声并开始下一次提醒
+  const handleStopAndStartNext = useCallback(async () => {
+    await bridge.stopTimer()
+    setNotificationVisible(false)
+    setFinishType("regular")
+    // 立即启动下一次常规提醒
+    await bridge.startTimer()
+    setStatus("running")
+  }, [])
 
   // 暂停
   const handlePause = useCallback(async () => {
@@ -238,21 +390,42 @@ export function App() {
   }, [])
 
   // 测试提醒铃声
-  const handleTestRingtone = useCallback(async () => { await bridge.testRingtone() }, [])
+  const handleTestRingtone = useCallback(async () => {
+    setIsTestPlaying(true)
+    await bridge.testRingtone()
+  }, [])
+
+  // 停止提醒铃声测试
+  const handleStopRingtone = useCallback(async () => {
+    await bridge.stopRingtone()
+    setIsTestPlaying(false)
+  }, [])
 
   // 选择活动铃声
   const handleSelectActivityRingtone = useCallback(async () => {
     const path = await bridge.selectActivityRingtone()
-    if (path) { setActivityRingtonePath(path); await bridge.saveConfig() }
+    if (path) {
+      setActivityRingtonePath(path)
+      await bridge.saveConfig()
+    }
   }, [])
 
   // 测试活动铃声
-  const handleTestActivityRingtone = useCallback(async () => { await bridge.testActivityRingtone() }, [])
-
-  // 开始活动倒计时
-  const handleStartActivity = useCallback(async () => {
-    await bridge.startActivityTimer()
+  const handleTestActivityRingtone = useCallback(async () => {
+    setIsActivityTestPlaying(true)
+    await bridge.testActivityRingtone()
   }, [])
+
+  // 停止活动铃声测试
+  const handleStopActivityRingtone = useCallback(async () => {
+    await bridge.stopRingtone()
+    setIsActivityTestPlaying(false)
+  }, [])
+
+  // 开始活动倒计时（使用自定义分钟数）
+  const handleStartActivity = useCallback(async () => {
+    await bridge.startActivityTimerWithMinutes(activityMinutes)
+  }, [activityMinutes])
 
   // 稍后提醒
   const handleSnooze = useCallback(async (minutes: number) => {
@@ -284,6 +457,15 @@ export function App() {
         >
           <span className="px-2 text-xs text-muted-foreground">久坐提醒助手</span>
           <div className="flex items-center" style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}>
+            {/* 设置按钮 */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-8 rounded-none"
+              onClick={() => setShowSettings((s) => !s)}
+            >
+              <SettingsIcon className="size-3.5" />
+            </Button>
             <Button variant="ghost" size="icon" className="size-8 rounded-none" onClick={() => bridge.minimize()}>
               <MinusIcon className="size-3.5" />
             </Button>
@@ -298,170 +480,142 @@ export function App() {
           </div>
         </div>
 
-        {/* 主内容 */}
-        <div className="flex flex-1 items-start justify-center p-4">
-          <div className="flex w-full max-w-md flex-col gap-4">
-            {/* 标题 */}
-            <div className="text-center">
-              <h1 className="flex items-center justify-center gap-2 font-heading text-xl font-semibold">
-                <ClockIcon className="size-5 text-primary" />
-                久坐提醒助手
-              </h1>
-              <p className="mt-1 text-sm text-muted-foreground">定时提醒，守护健康</p>
-            </div>
+        {showSettings ? (
+          <SettingsPage
+            ringtonePath={ringtonePath}
+            activityRingtonePath={activityRingtonePath}
+            isTestPlaying={isTestPlaying}
+            isActivityTestPlaying={isActivityTestPlaying}
+            onSelectRingtone={handleSelectRingtone}
+            onTestRingtone={handleTestRingtone}
+            onStopRingtone={handleStopRingtone}
+            onSelectActivityRingtone={handleSelectActivityRingtone}
+            onTestActivityRingtone={handleTestActivityRingtone}
+            onStopActivityRingtone={handleStopActivityRingtone}
+            onBack={() => setShowSettings(false)}
+          />
+        ) : (
+          /* 主内容 */
+          <div className="flex flex-1 items-start justify-center p-4">
+            <div className="flex w-full max-w-md flex-col gap-4">
+              {/* 标题 */}
+              <div className="text-center">
+                <h1 className="flex items-center justify-center gap-2 font-heading text-xl font-semibold">
+                  <ClockIcon className="size-5 text-primary" />
+                  久坐提醒助手
+                </h1>
+                <p className="mt-1 text-sm text-muted-foreground">定时提醒，守护健康</p>
+              </div>
 
-            {/* 状态显示 */}
-            <div className="flex items-center justify-between">
-              <StatusBadge status={status} />
-              {status === "running" && (
-                <span className="text-sm tabular-nums text-muted-foreground">
-                  下次提醒: {formatTime(remainingSeconds)}
-                </span>
-              )}
-            </div>
-
-            {/* 进度条 */}
-            <Progress value={status === "idle" ? 0 : progressPercent}>
-              <ProgressValue className="tabular-nums" />
-            </Progress>
-
-            {/* 时间设置 */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">时间设置</CardTitle>
-                <CardDescription>设置提醒间隔时间</CardDescription>
-              </CardHeader>
-              <CardContent className="flex flex-col gap-3">
-                <div className="flex gap-1">
-                  {stepperButtons.map((b) => (
-                    <Button
-                      key={b.label}
-                      variant="outline"
-                      size="sm"
-                      className="h-7 flex-1 px-0 text-xs"
-                      disabled={status === "running"}
-                      onClick={() => stepInterval(b.delta)}
-                    >
-                      {b.label}
-                    </Button>
-                  ))}
-                </div>
-                <div className="flex items-center gap-2">
-                  <Input
-                    type="number"
-                    min={1}
-                    max={999}
-                    value={intervalMinutes}
-                    disabled={status === "running"}
-                    onChange={(e) => setIntervalMinutes(parseInt(e.target.value) || 0)}
-                    onBlur={() => handleIntervalChange(intervalMinutes)}
-                    className="w-24 text-center"
-                  />
-                  <span className="text-sm text-muted-foreground">分钟</span>
-                  {status === "idle" && (
-                    <span className="ml-auto text-xs text-muted-foreground">失焦自动保存</span>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* 控制按钮 */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">控制</CardTitle>
-              </CardHeader>
-              <CardContent className="flex flex-wrap gap-2">
-                {status === "idle" && (
-                  <Button className="flex-1" onClick={handleStart}>
-                    <PlayIcon data-icon="inline-start" />
-                    启动
-                  </Button>
-                )}
+              {/* 状态显示 */}
+              <div className="flex items-center justify-between">
+                <StatusBadge status={status} />
                 {status === "running" && (
-                  <>
-                    <Button variant="secondary" className="flex-1" onClick={handlePause}>
-                      <PauseIcon data-icon="inline-start" />
-                      暂停
-                    </Button>
-                    <Button variant="destructive" className="flex-1" onClick={handleStop}>
-                      <SquareIcon data-icon="inline-start" />
-                      停止
-                    </Button>
-                  </>
+                  <span className="text-sm tabular-nums text-muted-foreground">
+                    下次提醒: {formatTime(remainingSeconds)}
+                  </span>
                 )}
-                {status === "paused" && (
-                  <>
-                    <Button className="flex-1" onClick={handleResume}>
+              </div>
+
+              {/* 进度条 */}
+              <Progress value={status === "idle" ? 0 : progressPercent}>
+                <ProgressValue className="tabular-nums" />
+              </Progress>
+
+              {/* 时间设置 */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">时间设置</CardTitle>
+                  <CardDescription>设置提醒间隔时间</CardDescription>
+                </CardHeader>
+                <CardContent className="flex flex-col gap-3">
+                  <div className="flex gap-1">
+                    {stepperButtons.map((b) => (
+                      <Button
+                        key={b.label}
+                        variant="outline"
+                        size="sm"
+                        className="h-7 flex-1 px-0 text-xs"
+                        disabled={status === "running"}
+                        onClick={() => stepInterval(b.delta)}
+                      >
+                        {b.label}
+                      </Button>
+                    ))}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="number"
+                      min={1}
+                      max={999}
+                      value={intervalMinutes}
+                      disabled={status === "running"}
+                      onChange={(e) => setIntervalMinutes(parseInt(e.target.value) || 0)}
+                      onBlur={() => handleIntervalChange(intervalMinutes)}
+                      className="w-24 text-center"
+                    />
+                    <span className="text-sm text-muted-foreground">分钟</span>
+                    {status === "idle" && (
+                      <span className="ml-auto text-xs text-muted-foreground">失焦自动保存</span>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* 控制按钮 */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">控制</CardTitle>
+                </CardHeader>
+                <CardContent className="flex flex-wrap gap-2">
+                  {status === "idle" && (
+                    <Button className="flex-1" onClick={handleStart}>
                       <PlayIcon data-icon="inline-start" />
-                      继续
+                      启动
                     </Button>
-                    <Button variant="destructive" className="flex-1" onClick={handleStop}>
-                      <SquareIcon data-icon="inline-start" />
-                      停止
+                  )}
+                  {status === "running" && (
+                    <>
+                      <Button variant="secondary" className="flex-1" onClick={handlePause}>
+                        <PauseIcon data-icon="inline-start" />
+                        暂停
+                      </Button>
+                      <Button variant="destructive" className="flex-1" onClick={handleStop}>
+                        <SquareIcon data-icon="inline-start" />
+                        停止
+                      </Button>
+                    </>
+                  )}
+                  {status === "paused" && (
+                    <>
+                      <Button className="flex-1" onClick={handleResume}>
+                        <PlayIcon data-icon="inline-start" />
+                        继续
+                      </Button>
+                      <Button variant="destructive" className="flex-1" onClick={handleStop}>
+                        <SquareIcon data-icon="inline-start" />
+                        停止
+                      </Button>
+                    </>
+                  )}
+                  {status === "finished" && (
+                    <Button className="flex-1" onClick={handleStopAndReset}>
+                      <SkipForwardIcon data-icon="inline-start" />
+                      停止并启动下一次
                     </Button>
-                  </>
-                )}
-                {status === "finished" && (
-                  <Button className="flex-1" onClick={handleStopAndReset}>
-                    <SkipForwardIcon data-icon="inline-start" />
-                    停止并启动下一次
-                  </Button>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* 提醒铃声设置 */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">提醒铃声</CardTitle>
-              </CardHeader>
-              <CardContent className="flex flex-col gap-3">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <MusicIcon className="size-4 shrink-0" />
-                  <span className="flex-1 truncate">{ringtonePath}</span>
-                </div>
-                <Separator />
-                <div className="flex gap-2">
-                  <Button variant="outline" className="flex-1" size="sm" onClick={handleSelectRingtone}>
-                    <MusicIcon data-icon="inline-start" />选择铃声
-                  </Button>
-                  <Button variant="secondary" className="flex-1" size="sm" onClick={handleTestRingtone}>
-                    <Volume2Icon data-icon="inline-start" />测试播放
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* 活动结束铃声设置 */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">活动结束铃声</CardTitle>
-                <CardDescription>5分钟活动结束后播放</CardDescription>
-              </CardHeader>
-              <CardContent className="flex flex-col gap-3">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <MusicIcon className="size-4 shrink-0" />
-                  <span className="flex-1 truncate">{activityRingtonePath}</span>
-                </div>
-                <Separator />
-                <div className="flex gap-2">
-                  <Button variant="outline" className="flex-1" size="sm" onClick={handleSelectActivityRingtone}>
-                    <MusicIcon data-icon="inline-start" />选择铃声
-                  </Button>
-                  <Button variant="secondary" className="flex-1" size="sm" onClick={handleTestActivityRingtone}>
-                    <Volume2Icon data-icon="inline-start" />测试播放
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* 通知浮层 */}
         {finishType === "activity" ? (
           <ActivityDoneOverlay
             visible={notificationVisible}
-            onStopAndReset={handleStopAndReset}
+            onStopOnly={handleStopOnly}
+            onStopAndStartNext={handleStopAndStartNext}
           />
         ) : (
           <NotificationOverlay
@@ -469,6 +623,8 @@ export function App() {
             onStopAndReset={handleStopAndReset}
             onStartActivity={handleStartActivity}
             onSnooze={handleSnooze}
+            activityMinutes={activityMinutes}
+            setActivityMinutes={setActivityMinutes}
           />
         )}
       </div>
