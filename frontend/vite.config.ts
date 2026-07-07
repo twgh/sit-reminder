@@ -13,7 +13,7 @@ export default defineConfig({
   },
   build: {
     // 直接输出到后端 dist
-    outDir: path.resolve(__dirname, "../backend/dist"),
+    outDir: path.resolve(__dirname, "../backend/internal/gui/dist"),
     emptyOutDir: true, // 构建前自动清空目标目录
   },
 })
