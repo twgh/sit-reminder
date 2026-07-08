@@ -35,16 +35,16 @@ const (
 type TimerType int
 
 const (
-	TimerRegular  TimerType = iota // 常规提醒
-	TimerSnooze                    // 稍后提醒
-	TimerActivity                  // 活动倒计时
+	TimerSedentary TimerType = iota // 久坐提醒
+	TimerSnooze                     // 稍后提醒
+	TimerActivity                   // 活动倒计时
 )
 
 type MainWindow struct {
 	edg    *edge.Edge
 	w      *window.Window
 	wv     *edge.WebView
-	ap     *wutil.AudioPlayer // 提醒铃声
+	ap     *wutil.AudioPlayer // 久坐提醒铃声
 	ap2    *wutil.AudioPlayer // 活动结束铃声
 	config *config.AppConfig
 	tray   *window.TrayIcon // 托盘图标
@@ -134,8 +134,8 @@ func (m *MainWindow) regXcEvents() {
 	m.w.AddEvent_Close(func(hWindow int, pbHandled *bool) int {
 		*pbHandled = true // 拦截
 		m.wv.Eval("document.activeElement && document.activeElement.blur()")
-		m.w.ShowWindow(xcc.SW_HIDE) // 隐藏窗口
-		m.startSuspendTimer()       // 挂起 WebView 以节省内存
+		m.w.Show(false)       // 隐藏窗口
+		m.startSuspendTimer() // 挂起 WebView 以节省内存
 		return 0
 	})
 
@@ -146,9 +146,7 @@ func (m *MainWindow) regXcEvents() {
 		}
 		switch xcc.WM_(lParam) {
 		case xcc.WM_LBUTTONDOWN: // 鼠标左键按下
-			m.w.ShowWindow(xcc.SW_RESTORE)
-			m.cancelSuspendTimer()
-			m.doResume()
+			m.activateWindow()
 		case xcc.WM_RBUTTONDOWN: // 鼠标右键按下
 			// 创建菜单
 			menu := widget.NewMenu()
@@ -169,9 +167,7 @@ func (m *MainWindow) regXcEvents() {
 	m.w.AddEvent_Menu_Select(func(hWindow int, nID int32, pbHandled *bool) int {
 		switch nID {
 		case 100: // 设置
-			m.w.ShowWindow(xcc.SW_RESTORE)
-			m.cancelSuspendTimer()
-			m.doResume()
+			m.activateWindow()
 			m.wv.Eval("window.__showSettings && window.__showSettings()")
 
 		case 99999: // 退出
@@ -185,13 +181,17 @@ func (m *MainWindow) regXcEvents() {
 // regWebViewEvents 注册 WebView 事件
 func (m *MainWindow) regWebViewEvents() {
 	firstLoad := true
+	// 导航完成事件
 	m.wv.Event_NavigationCompleted(func(sender *edge.ICoreWebView2, args *edge.ICoreWebView2NavigationCompletedEventArgs) uintptr {
 		uri := sender.MustGetSource()
 		fmt.Println("导航完成:", uri)
-		if firstLoad && uri == m.getHost()+"/index.html" {
-			firstLoad = false
-			m.w.Show(true)
-			m.pushConfig()
+		if uri == m.getHost()+"/index.html" {
+			if firstLoad {
+				firstLoad = false
+				m.w.Show()
+			}
+
+			m.pushConfig() // 推送配置到 WebView
 		}
 		return 0
 	})
@@ -215,7 +215,7 @@ func (m *MainWindow) bindFunctions() {
 
 	// ===== 定时器控制 =====
 	m.wv.Bind("api.startTimer", func() {
-		m.startTimer(TimerRegular)
+		m.startTimer(TimerSedentary)
 	})
 	m.wv.Bind("api.stopTimer", func() {
 		m.stopTimer()

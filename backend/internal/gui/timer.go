@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/twgh/xcgui/wapi"
 	"github.com/twgh/xcgui/xc"
 	"github.com/twgh/xcgui/xcc"
 )
@@ -77,14 +78,14 @@ func (m *MainWindow) stopTimer() {
 	default:
 	}
 	m.state = StateIdle
-	m.timerType = TimerRegular
+	m.timerType = TimerSedentary
 	m.total = m.config.IntervalMinutes * 60
 	m.remaining = m.total
 	m.mu.Unlock()
 
 	xc.UI(func() {
 		m.evalStatusChanged("idle")
-		m.evalTimerTypeChanged(TimerRegular)
+		m.evalTimerTypeChanged(TimerSedentary)
 		// 通知前端重置进度显示
 		m.wv.Eval(fmt.Sprintf("window.__timerTick && __timerTick(%d, %d)", m.remaining, m.total))
 	})
@@ -204,7 +205,7 @@ func (m *MainWindow) runTimerLoop() {
 				m.mu.Unlock()
 
 				// 根据计时类型决定行为
-				typeStr := "regular"
+				typeStr := "sedentary"
 				switch tt {
 				case TimerActivity:
 					typeStr = "activity"
@@ -246,7 +247,7 @@ func timerTypeStr(t TimerType) string {
 	case TimerSnooze:
 		return "snooze"
 	default:
-		return "regular"
+		return "sedentary"
 	}
 }
 
@@ -255,7 +256,8 @@ func (m *MainWindow) evalTimerTypeChanged(t TimerType) {
 	m.wv.Eval(fmt.Sprintf("window.__timerTypeChanged && __timerTypeChanged('%s')", timerTypeStr(t)))
 }
 
-// activateWindow 提醒时激活窗口到前台
+// activateWindow 激活窗口到前台, 如果 WebView 是在挂起状态, 会自动恢复
 func (m *MainWindow) activateWindow() {
+	m.w.SendMessage(wapi.WM_SIZE, wapi.SIZE_RESTORED, 0)
 	m.w.ShowWindow(xcc.SW_RESTORE)
 }
