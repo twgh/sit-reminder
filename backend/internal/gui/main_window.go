@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/twgh/sit-reminder/internal/config"
@@ -133,9 +134,13 @@ func (m *MainWindow) regXcEvents() {
 	// 窗口关闭事件
 	m.w.AddEvent_Close(func(hWindow int, pbHandled *bool) int {
 		*pbHandled = true // 拦截
-		m.wv.Eval("document.activeElement && document.activeElement.blur()")
-		m.w.Show(false)       // 隐藏窗口
-		m.startSuspendTimer() // 挂起 WebView 以节省内存
+		// 给 body 加 class 禁用关闭按钮的 hover 样式（CSS 已在 index.css 预定义）
+		m.wv.EvalAsync(`document.body.classList.add('close-hover-disabled')`, func(errorCode syscall.Errno, result string) uintptr {
+			m.wv.Show(false)      // 隐藏 WebView
+			m.w.Show(false)       // 隐藏窗口
+			m.startSuspendTimer() // 挂起 WebView 以节省内存
+			return 0
+		})
 		return 0
 	})
 

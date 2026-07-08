@@ -128,3 +128,9 @@
     @apply font-sans;
     }
 }
+
+/* 窗口隐藏时禁用关闭按钮的 hover 样式，由 Go 侧通过 body.close-hover-disabled 切换 */
+body.close-hover-disabled div[style*="no-drag"] > button:last-of-type {
+  pointer-events: none !important;
+  transition: none !important;
+}
