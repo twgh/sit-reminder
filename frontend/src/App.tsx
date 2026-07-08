@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -192,7 +192,7 @@ function SettingsPage({
   ]
 
   return (
-    <div className="flex flex-1 flex-col">
+    <div className="flex min-h-0 flex-1 flex-col">
       {/* 固定标题栏 */}
       <div className="flex shrink-0 items-center gap-3 border-b p-4 pb-3">
         <Button variant="ghost" size="icon" className="size-8" onClick={onBack}>
@@ -204,7 +204,7 @@ function SettingsPage({
         </h2>
       </div>
       {/* 可滚动内容 */}
-      <div className="flex flex-1 items-start justify-center overflow-y-auto p-4">
+      <div className="flex min-h-0 flex-1 items-start justify-center overflow-y-auto p-4">
       <div className="flex w-full max-w-md flex-col gap-4">
 
         {/* 久坐提醒铃声设置 */}
@@ -342,7 +342,12 @@ export function App() {
   const [isTestPlaying, setIsTestPlaying] = useState(false)
   const [isActivityTestPlaying, setIsActivityTestPlaying] = useState(false)
   const [activityMinutes, setActivityMinutes] = useState(5)
+  const [tempActivityMinutes, setTempActivityMinutes] = useState(5)
   const [volume, setVolume] = useState(1000)
+
+  // 跟踪最新的活动时长，供 __timerFinished 回调读取，避免闭包陈旧
+  const activityMinutesRef = useRef(activityMinutes)
+  activityMinutesRef.current = activityMinutes
 
   // 初始化全局回调
   useEffect(() => {
@@ -355,6 +360,8 @@ export function App() {
       setFinishType(type)
       setStatus("finished")
       setRemainingSeconds(0)
+      // 每次久坐提醒时，临时活动时长从配置值开始
+      setTempActivityMinutes(activityMinutesRef.current)
       setNotificationVisible(true)
     }
 
@@ -370,6 +377,7 @@ export function App() {
       setActivityRingtonePath(config.activityRingtonePath || DEFAULT_RINGTONE)
       if (config.activityMinutes && config.activityMinutes > 0) {
         setActivityMinutes(config.activityMinutes)
+        setTempActivityMinutes(config.activityMinutes)
       }
       if (typeof config.volume === "number") {
         setVolume(config.volume)
@@ -397,6 +405,7 @@ export function App() {
         setActivityRingtonePath(config.activityRingtonePath || DEFAULT_RINGTONE)
         if (config.activityMinutes && config.activityMinutes > 0) {
           setActivityMinutes(config.activityMinutes)
+          setTempActivityMinutes(config.activityMinutes)
         }
         if (typeof config.volume === "number") {
           setVolume(config.volume)
@@ -543,8 +552,8 @@ export function App() {
 
   // 开始活动倒计时（使用自定义分钟数）
   const handleStartActivity = useCallback(async () => {
-    await bridge.startActivityTimerWithMinutes(activityMinutes)
-  }, [activityMinutes])
+    await bridge.startActivityTimerWithMinutes(tempActivityMinutes)
+  }, [tempActivityMinutes])
 
   // 稍后提醒
   const handleSnooze = useCallback(async (minutes: number) => {
@@ -568,7 +577,7 @@ export function App() {
 
   return (
     <TooltipProvider>
-      <div className="flex min-h-svh flex-col select-none">
+      <div className="flex h-svh flex-col overflow-hidden select-none">
         {/* 可拖动标题栏 */}
         <div
           className="flex h-9 shrink-0 items-center justify-between border-b bg-muted/30 px-2"
@@ -753,8 +762,8 @@ export function App() {
             onStopAndReset={handleStopAndReset}
             onStartActivity={handleStartActivity}
             onSnooze={handleSnooze}
-            activityMinutes={activityMinutes}
-            setActivityMinutes={setActivityMinutes}
+            activityMinutes={tempActivityMinutes}
+            setActivityMinutes={setTempActivityMinutes}
           />
         )}
       </div>
