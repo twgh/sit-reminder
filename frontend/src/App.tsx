@@ -73,9 +73,9 @@ function NotificationOverlay({
           <CardDescription className="select-none">久坐对健康不利，站起来走走吧！</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
-          <Button variant="secondary" size="lg" className="w-full" onClick={onStopAndReset}>
-            <SquareIcon data-icon="inline-start" />
-            停止并返回
+          <Button size="lg" className="w-full" onClick={onStartActivity}>
+            <DumbbellIcon data-icon="inline-start" />
+            开始{activityMinutes}分钟活动倒计时
           </Button>
           {/* 活动时间设置 */}
           <div className="flex items-center justify-center gap-2">
@@ -90,9 +90,9 @@ function NotificationOverlay({
             />
             <span className="text-sm text-muted-foreground">分钟</span>
           </div>
-          <Button size="lg" className="w-full" onClick={onStartActivity}>
-            <DumbbellIcon data-icon="inline-start" />
-            开始{activityMinutes}分钟活动倒计时
+          <Button variant="secondary" size="lg" className="w-full" onClick={onStopAndReset}>
+            <SquareIcon data-icon="inline-start" />
+            停止并返回
           </Button>
           <Separator />
           <div className="flex flex-col gap-2">
@@ -138,7 +138,7 @@ function ActivityDoneOverlay({
           </Button>
           <Button size="lg" className="w-full" onClick={onStopAndStartNext}>
             <SkipForwardIcon data-icon="inline-start" />
-            开始下一次提醒
+            开始下一次久坐提醒
           </Button>
         </CardContent>
       </Card>
@@ -205,7 +205,7 @@ function SettingsPage({
           </h2>
         </div>
 
-        {/* 提醒铃声设置 */}
+        {/* 久坐提醒铃声设置 */}
         <Card>
           <CardHeader>
             <CardTitle className="text-base">久坐提醒铃声</CardTitle>
@@ -419,7 +419,7 @@ export function App() {
     setFinishType("regular")
   }, [intervalMinutes])
 
-  // 停止活动铃声但不开始下一次提醒
+  // 停止活动铃声但不开始下一次久坐提醒
   const handleStopOnly = useCallback(async () => {
     await bridge.stopTimer()
     setStatus("idle")
@@ -429,12 +429,12 @@ export function App() {
     setFinishType("regular")
   }, [intervalMinutes])
 
-  // 停止活动铃声并开始下一次提醒
+  // 停止活动铃声并开始下一次久坐提醒
   const handleStopAndStartNext = useCallback(async () => {
     await bridge.stopTimer()
     setNotificationVisible(false)
     setFinishType("regular")
-    // 立即启动下一次常规提醒
+    // 立即启动下一次久坐提醒
     await bridge.startTimer()
     setStatus("running")
   }, [])
@@ -480,7 +480,7 @@ export function App() {
     [intervalMinutes]
   )
 
-  // 选择提醒铃声
+  // 选择久坐提醒铃声
   const handleSelectRingtone = useCallback(async () => {
     const path = await bridge.selectRingtone()
     if (path) {
@@ -489,13 +489,13 @@ export function App() {
     }
   }, [])
 
-  // 测试提醒铃声
+  // 测试久坐提醒铃声
   const handleTestRingtone = useCallback(async () => {
     setIsTestPlaying(true)
     await bridge.testRingtone()
   }, [])
 
-  // 停止提醒铃声测试
+  // 停止久坐提醒铃声测试
   const handleStopRingtone = useCallback(async () => {
     await bridge.stopRingtone()
     setIsTestPlaying(false)
