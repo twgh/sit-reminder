@@ -98,9 +98,9 @@ function NotificationOverlay({
           <div className="flex flex-col gap-2">
             <p className="text-center text-xs text-muted-foreground select-none">稍后提醒</p>
             <div className="flex gap-2">
+              <Button variant="outline" className="flex-1" size="sm" onClick={() => onSnooze(3)}>3 分钟</Button>
               <Button variant="outline" className="flex-1" size="sm" onClick={() => onSnooze(5)}>5 分钟</Button>
               <Button variant="outline" className="flex-1" size="sm" onClick={() => onSnooze(10)}>10 分钟</Button>
-              <Button variant="outline" className="flex-1" size="sm" onClick={() => onSnooze(15)}>15 分钟</Button>
             </div>
           </div>
         </CardContent>
@@ -185,10 +185,10 @@ function SettingsPage({
 
   // 活动时间步进按钮
   const activitySteppers = [
-    { label: "-5", delta: -5 },
-    { label: "-1", delta: -1 },
     { label: "+1", delta: 1 },
-    { label: "+5", delta: 5 },
+    { label: "-1", delta: -1 },
+    { label: "+3", delta: 3 },
+    { label: "-3", delta: -3 },
   ]
 
   return (
@@ -567,12 +567,12 @@ export function App() {
     totalSeconds > 0 ? Math.max(0, ((totalSeconds - remainingSeconds) / totalSeconds) * 100) : 0
 
   const stepperButtons = [
+    { label: "30", value: 30 },
+    { label: "40", value: 40 },
     { label: "+5", delta: 5 },
     { label: "-5", delta: -5 },
     { label: "+10", delta: 10 },
     { label: "-10", delta: -10 },
-    { label: "30", value: 30 },
-    { label: "40", value: 40 },
   ]
 
   return (
