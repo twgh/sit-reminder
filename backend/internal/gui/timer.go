@@ -259,8 +259,9 @@ func (m *MainWindow) evalTimerTypeChanged(t TimerType) {
 // activateWindow 激活窗口到前台, 如果 WebView 是在挂起状态, 会自动恢复
 func (m *MainWindow) activateWindow() {
 	m.w.SendMessage(wapi.WM_SIZE, wapi.SIZE_RESTORED, 0)
-	m.w.ShowWindow(xcc.SW_RESTORE)
 	m.wv.Show() // 显示 WebView
+	m.w.ShowWindow(xcc.SW_SHOWNORMAL)
+	m.w.SetTop().SetTop(false)
 	// 恢复关闭按钮的 hover 样式: 移除 body 上的禁用 class
 	m.wv.Eval(`document.body.classList.remove('close-hover-disabled')`)
 }
