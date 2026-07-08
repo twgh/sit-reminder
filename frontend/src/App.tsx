@@ -192,18 +192,20 @@ function SettingsPage({
   ]
 
   return (
-    <div className="flex flex-1 items-start justify-center p-4">
+    <div className="flex flex-1 flex-col">
+      {/* 固定标题栏 */}
+      <div className="flex shrink-0 items-center gap-3 border-b p-4 pb-3">
+        <Button variant="ghost" size="icon" className="size-8" onClick={onBack}>
+          <ArrowLeftIcon className="size-4" />
+        </Button>
+        <h2 className="flex items-center gap-2 font-heading text-lg font-semibold">
+          <SettingsIcon className="size-5 text-primary" />
+          设置
+        </h2>
+      </div>
+      {/* 可滚动内容 */}
+      <div className="flex flex-1 items-start justify-center overflow-y-auto p-4">
       <div className="flex w-full max-w-md flex-col gap-4">
-        {/* 返回按钮 + 标题 */}
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" className="size-8" onClick={onBack}>
-            <ArrowLeftIcon className="size-4" />
-          </Button>
-          <h2 className="flex items-center gap-2 font-heading text-lg font-semibold">
-            <SettingsIcon className="size-5 text-primary" />
-            设置
-          </h2>
-        </div>
 
         {/* 久坐提醒铃声设置 */}
         <Card>
@@ -320,6 +322,7 @@ function SettingsPage({
             </div>
           </CardContent>
         </Card>
+      </div>
       </div>
     </div>
   )
@@ -555,12 +558,12 @@ export function App() {
     totalSeconds > 0 ? Math.max(0, ((totalSeconds - remainingSeconds) / totalSeconds) * 100) : 0
 
   const stepperButtons = [
-    { label: "-10", delta: -10 },
-    { label: "-5", delta: -5 },
-    { label: "-1", delta: -1 },
-    { label: "+1", delta: 1 },
     { label: "+5", delta: 5 },
+    { label: "-5", delta: -5 },
     { label: "+10", delta: 10 },
+    { label: "-10", delta: -10 },
+    { label: "30", value: 30 },
+    { label: "40", value: 40 },
   ]
 
   return (
@@ -631,9 +634,9 @@ export function App() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <StatusBadge status={status} />
-                  {status === "running" && timerType !== "sedentary" && (
+                  {status === "running" && (
                     <span className="text-xs text-muted-foreground">
-                      {timerType === "activity" ? "活动倒计时" : "稍后提醒"}
+                      {timerType === "sedentary" ? "久坐提醒" : timerType === "activity" ? "活动倒计时" : "稍后提醒"}
                     </span>
                   )}
                 </div>
@@ -664,7 +667,7 @@ export function App() {
                         size="sm"
                         className="h-7 flex-1 px-0 text-xs"
                         disabled={status === "running"}
-                        onClick={() => stepInterval(b.delta)}
+                        onClick={() => b.value !== undefined ? handleIntervalChange(b.value) : stepInterval(b.delta)}
                       >
                         {b.label}
                       </Button>

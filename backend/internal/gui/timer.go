@@ -260,4 +260,5 @@ func (m *MainWindow) evalTimerTypeChanged(t TimerType) {
 func (m *MainWindow) activateWindow() {
 	m.w.SendMessage(wapi.WM_SIZE, wapi.SIZE_RESTORED, 0)
 	m.w.ShowWindow(xcc.SW_RESTORE)
+	m.wv.Eval("document.body.setAttribute('tabindex', '-1'); document.body.focus()")
 }
