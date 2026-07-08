@@ -332,8 +332,8 @@ export function App() {
   const [intervalMinutes, setIntervalMinutes] = useState(40)
   const [ringtonePath, setRingtonePath] = useState(DEFAULT_RINGTONE)
   const [activityRingtonePath, setActivityRingtonePath] = useState(DEFAULT_RINGTONE)
-  const [finishType, setFinishType] = useState<TimerFinishType>("regular")
-  const [timerType, setTimerType] = useState<TimerType>("regular")
+  const [finishType, setFinishType] = useState<TimerFinishType>("sedentary")
+  const [timerType, setTimerType] = useState<TimerType>("sedentary")
   const [notificationVisible, setNotificationVisible] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [isTestPlaying, setIsTestPlaying] = useState(false)
@@ -416,7 +416,7 @@ export function App() {
     setRemainingSeconds(intervalMinutes * 60)
     setTotalSeconds(intervalMinutes * 60)
     setNotificationVisible(false)
-    setFinishType("regular")
+    setFinishType("sedentary")
   }, [intervalMinutes])
 
   // 停止活动铃声但不开始下一次久坐提醒
@@ -426,14 +426,14 @@ export function App() {
     setRemainingSeconds(intervalMinutes * 60)
     setTotalSeconds(intervalMinutes * 60)
     setNotificationVisible(false)
-    setFinishType("regular")
+    setFinishType("sedentary")
   }, [intervalMinutes])
 
   // 停止活动铃声并开始下一次久坐提醒
   const handleStopAndStartNext = useCallback(async () => {
     await bridge.stopTimer()
     setNotificationVisible(false)
-    setFinishType("regular")
+    setFinishType("sedentary")
     // 立即启动下一次久坐提醒
     await bridge.startTimer()
     setStatus("running")
@@ -456,7 +456,7 @@ export function App() {
     setRemainingSeconds(intervalMinutes * 60)
     setTotalSeconds(intervalMinutes * 60)
     setNotificationVisible(false)
-    setFinishType("regular")
+    setFinishType("sedentary")
   }, [intervalMinutes])
 
   // 修改间隔时间
@@ -547,7 +547,7 @@ export function App() {
   const handleSnooze = useCallback(async (minutes: number) => {
     await bridge.snooze(minutes)
     setNotificationVisible(false)
-    setFinishType("regular")
+    setFinishType("sedentary")
   }, [])
 
   // 进度百分比: elapsed / total
@@ -631,7 +631,7 @@ export function App() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <StatusBadge status={status} />
-                  {status === "running" && timerType !== "regular" && (
+                  {status === "running" && timerType !== "sedentary" && (
                     <span className="text-xs text-muted-foreground">
                       {timerType === "activity" ? "活动倒计时" : "稍后提醒"}
                     </span>

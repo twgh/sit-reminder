@@ -9,8 +9,8 @@ export interface AppConfig {
 }
 
 export type TimerStatus = "idle" | "running" | "paused" | "finished"
-export type TimerFinishType = "regular" | "snooze" | "activity"
-export type TimerType = "regular" | "snooze" | "activity"
+export type TimerFinishType = "sedentary" | "snooze" | "activity"
+export type TimerType = "sedentary" | "snooze" | "activity"
 
 declare global {
   interface Window {
