@@ -116,7 +116,6 @@ func (m *MainWindow) doSuspend() {
 		} else {
 			fmt.Println("挂起成功")
 		}
-		// 过期的累积回调，静默忽略
 		return 0
 	})
 	if err != nil {
@@ -128,7 +127,7 @@ func (m *MainWindow) doSuspend() {
 func (m *MainWindow) doResume() {
 	if m.wv.IsSuspended() {
 		m.wv.Resume()
-		m.wv.Show(true)
+		m.wv.Show()
 		fmt.Println("从挂起状态恢复正常")
 	}
 }
