@@ -25,6 +25,25 @@ import {
 } from "lucide-react"
 import { bridge, type AppConfig, type TimerStatus, type TimerFinishType, type TimerType } from "@/lib/bridge"
 
+// 准备就绪
+function onAppReady() {
+    // 发送消息给后端
+    if (window?.chrome?.webview) window.chrome.webview.postMessage(JSON.stringify({ cmd: "app_ready" }));
+}
+
+// 监听后端的消息
+window?.chrome?.webview && window.chrome.webview.addEventListener('message', event => {
+    switch (event.data?.cmd) {
+      case "open_setting": // 打开设置页面
+        window.__showSettings && window.__showSettings();
+        break;
+    
+      default:
+        break;
+    }
+});
+
+
 const DEFAULT_RINGTONE = "未设置"
 
 function formatTime(totalSeconds: number): string {
@@ -351,6 +370,8 @@ export function App() {
 
   // 初始化全局回调
   useEffect(() => {
+    onAppReady(); // 准备就绪
+
     window.__timerTick = (remaining: number, total: number) => {
       setRemainingSeconds(remaining)
       setTotalSeconds(total)

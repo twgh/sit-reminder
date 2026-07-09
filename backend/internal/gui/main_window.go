@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -63,6 +64,8 @@ type MainWindow struct {
 	suspendMu    sync.Mutex
 	suspendTimer *time.Timer
 	suspendDelay time.Duration
+
+	openSettingAfterReady bool // 是否在前端页面准备就绪后打开设置页面
 }
 
 func NewMainWindow(edg *edge.Edge) *MainWindow {
@@ -172,6 +175,10 @@ func (m *MainWindow) regXcEvents() {
 	m.w.AddEvent_Menu_Select(func(hWindow int, nID int32, pbHandled *bool) int {
 		switch nID {
 		case 100: // 设置
+			if m.wv.IsSuspended() { // 在挂起状态时
+				m.openSettingAfterReady = true
+			}
+
 			m.activateWindow()
 			m.wv.Eval("window.__showSettings && window.__showSettings()")
 
@@ -197,6 +204,33 @@ func (m *MainWindow) regWebViewEvents() {
 			}
 
 			m.pushConfig() // 推送配置到 WebView
+		}
+		return 0
+	})
+
+	// 网页消息事件
+	m.wv.Event_WebMessageReceived(func(sender *edge.ICoreWebView2, args *edge.ICoreWebView2WebMessageReceivedEventArgs) uintptr {
+		msg := args.MustTryGetWebMessageAsString()
+		fmt.Println("消息:", msg)
+		if msg == "" {
+			return 0
+		}
+
+		// 从前端发来的json消息中解析出参数
+		if strings.HasPrefix(msg, `{"cmd`) {
+			var data map[string]string
+			if err := json.Unmarshal([]byte(msg), &data); err != nil {
+				log.Println("解析json消息失败:", err.Error())
+				return 0
+			}
+
+			switch data["cmd"] {
+			case "app_ready": // 前端页面准备就绪
+				if m.openSettingAfterReady {
+					m.openSettingAfterReady = false
+					m.wv.CoreWebView.PostWebMessageAsJSON(`{"cmd":"open_setting"}`) // 打开设置页面
+				}
+			}
 		}
 		return 0
 	})

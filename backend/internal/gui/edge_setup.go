@@ -75,8 +75,15 @@ func (m *MainWindow) saveMemory() {
 	})
 }
 
+// 清除记录的页面重载后要打开的页面
+func (m *MainWindow) clearOpenPageAfterReady() {
+	m.openSettingAfterReady = false
+}
+
 // startSuspendTimer 启动挂起定时器（延迟后挂起 WebView）
 func (m *MainWindow) startSuspendTimer() {
+	m.clearOpenPageAfterReady() // 挂起前清除页面重载后要打开的页面
+
 	m.suspendMu.Lock()
 	defer m.suspendMu.Unlock()
 
