@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/twgh/xcgui/wapi"
 	"github.com/twgh/xcgui/xc"
 	"github.com/twgh/xcgui/xcc"
 )
@@ -258,7 +257,6 @@ func (m *MainWindow) evalTimerTypeChanged(t TimerType) {
 
 // activateWindow 激活窗口到前台, 如果 WebView 是在挂起状态, 会自动恢复
 func (m *MainWindow) activateWindow() {
-	m.w.SendMessage(wapi.WM_SIZE, wapi.SIZE_RESTORED, 0)
 	m.wv.Show() // 显示 WebView
 	m.w.ShowWindow(xcc.SW_SHOWNORMAL)
 	m.w.SetTop().SetTop(false)

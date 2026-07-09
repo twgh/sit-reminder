@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -21,9 +20,6 @@ import (
 	"github.com/twgh/xcgui/window"
 	"github.com/twgh/xcgui/xcc"
 )
-
-// suspendDelay 挂起延迟时间
-const suspendDelay = 10 * time.Second
 
 type TimerState int
 
@@ -60,25 +56,18 @@ type MainWindow struct {
 	timerType TimerType
 	remaining int
 	total     int
-
-	suspendMu    sync.Mutex
-	suspendTimer *time.Timer
-	suspendDelay time.Duration
-
-	openSettingAfterReady bool // 是否在前端页面准备就绪后打开设置页面
 }
 
 func NewMainWindow(edg *edge.Edge) *MainWindow {
 	m := &MainWindow{
-		edg:          edg,
-		ap:           wutil.NewAudioPlayer(),
-		ap2:          wutil.NewAudioPlayer(),
-		config:       config.LoadConfig(),
-		done:         make(chan struct{}),
-		pauseCh:      make(chan struct{}),
-		resumeCh:     make(chan struct{}),
-		state:        StateIdle,
-		suspendDelay: suspendDelay,
+		edg:      edg,
+		ap:       wutil.NewAudioPlayer(),
+		ap2:      wutil.NewAudioPlayer(),
+		config:   config.LoadConfig(),
+		done:     make(chan struct{}),
+		pauseCh:  make(chan struct{}),
+		resumeCh: make(chan struct{}),
+		state:    StateIdle,
 	}
 
 	var err error
@@ -123,7 +112,7 @@ func NewMainWindow(edg *edge.Edge) *MainWindow {
 		m.setupDevServer()
 	}
 
-	// 最小化时挂起 WebView 以节省内存
+	// 节省 WebView 内存
 	m.saveMemory()
 
 	m.regWebViewEvents()
@@ -139,9 +128,8 @@ func (m *MainWindow) regXcEvents() {
 		*pbHandled = true // 拦截
 		// 给 body 加 class 禁用关闭按钮的 hover 样式（CSS 已在 index.css 预定义）
 		m.wv.EvalAsync(`document.body.classList.add('close-hover-disabled')`, func(errorCode syscall.Errno, result string) uintptr {
-			m.wv.Show(false)      // 隐藏 WebView
-			m.w.Show(false)       // 隐藏窗口
-			m.startSuspendTimer() // 挂起 WebView 以节省内存
+			m.wv.Show(false) // 隐藏 WebView
+			m.w.Show(false)  // 隐藏窗口
 			return 0
 		})
 		return 0
@@ -166,7 +154,7 @@ func (m *MainWindow) regXcEvents() {
 			var pt wapi.POINT
 			wapi.GetCursorPos(&pt)
 			// 弹出菜单
-			menu.Popup(m.w.GetHWND(), pt.X, pt.Y+30, 0, xcc.Menu_Popup_Position_Left_Top)
+			menu.Popup(m.w.GetHWND(), pt.X, pt.Y, 0, xcc.Menu_Popup_Position_Left_Top)
 		}
 		return 0
 	})
@@ -175,10 +163,6 @@ func (m *MainWindow) regXcEvents() {
 	m.w.AddEvent_Menu_Select(func(hWindow int, nID int32, pbHandled *bool) int {
 		switch nID {
 		case 100: // 设置
-			if m.wv.IsSuspended() { // 在挂起状态时
-				m.openSettingAfterReady = true
-			}
-
 			m.activateWindow()
 			m.wv.Eval("window.__showSettings && window.__showSettings()")
 
@@ -204,33 +188,6 @@ func (m *MainWindow) regWebViewEvents() {
 			}
 
 			m.pushConfig() // 推送配置到 WebView
-		}
-		return 0
-	})
-
-	// 网页消息事件
-	m.wv.Event_WebMessageReceived(func(sender *edge.ICoreWebView2, args *edge.ICoreWebView2WebMessageReceivedEventArgs) uintptr {
-		msg := args.MustTryGetWebMessageAsString()
-		fmt.Println("消息:", msg)
-		if msg == "" {
-			return 0
-		}
-
-		// 从前端发来的json消息中解析出参数
-		if strings.HasPrefix(msg, `{"cmd`) {
-			var data map[string]string
-			if err := json.Unmarshal([]byte(msg), &data); err != nil {
-				log.Println("解析json消息失败:", err.Error())
-				return 0
-			}
-
-			switch data["cmd"] {
-			case "app_ready": // 前端页面准备就绪
-				if m.openSettingAfterReady {
-					m.openSettingAfterReady = false
-					m.wv.CoreWebView.PostWebMessageAsJSON(`{"cmd":"open_setting"}`) // 打开设置页面
-				}
-			}
 		}
 		return 0
 	})
