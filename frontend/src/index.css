@@ -130,7 +130,39 @@
 }
 
 /* 窗口隐藏时禁用关闭按钮的 hover 样式，由 Go 侧通过 body.close-hover-disabled 切换 */
-body.close-hover-disabled div[style*="no-drag"] > button:last-of-type {
+body.close-hover-disabled .titlebar-controls > button:last-of-type {
   pointer-events: none !important;
   transition: none !important;
+}
+
+/* ===== 窗口圆角阴影 ===== */
+
+/* 关键1：body 必须透明（后端已设置透明窗口类型） */
+html, body {
+  background: transparent !important;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* 关键2：shadow-container 绝对定位填满视口，padding 留出阴影空间 */
+#shadow-container {
+  position: absolute;
+  inset: 0;
+  padding: 12px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+/* 关键3：content 是真正的窗口内容区，圆角和阴影画在这里 */
+#content {
+  height: 100%;
+  background: var(--background);
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
