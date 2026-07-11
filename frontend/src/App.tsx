@@ -24,6 +24,7 @@ import {
   DumbbellIcon,
 } from "lucide-react"
 import { bridge, type AppConfig, type TimerStatus, type TimerFinishType, type TimerType } from "@/lib/bridge"
+import WindowDrag from "@/lib/window-drag"
 
 const DEFAULT_RINGTONE = "未设置"
 
@@ -351,6 +352,12 @@ export function App() {
 
   // 初始化全局回调
   useEffect(() => {
+    // 使用 WindowDrag 让窗口空白区域可拖动
+    const cleanup = WindowDrag.enable(
+      '#app-content',
+      'button, a, input, select, textarea, [role="button"], [role="slider"]'
+    )
+
     window.__timerTick = (remaining: number, total: number) => {
       setRemainingSeconds(remaining)
       setTotalSeconds(total)
@@ -412,6 +419,10 @@ export function App() {
         }
       }
     })
+
+    return () => {
+      cleanup()
+    }
   }, [])
 
   // 启动计时（预置剩余秒数防闪屏）
@@ -577,195 +588,198 @@ export function App() {
 
   return (
     <TooltipProvider>
-      <div className="flex h-svh flex-col overflow-hidden select-none">
-        {/* 可拖动标题栏 */}
-        <div
-          className="flex h-9 shrink-0 items-center justify-between border-b bg-muted/30 px-2"
-          style={{ WebkitAppRegion: "drag" } as React.CSSProperties}
-        >
-          <span className="px-2 text-xs text-muted-foreground">久坐提醒助手</span>
-          <div className="flex items-center" style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}>
-            {/* 设置按钮 */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="size-8 rounded-none"
-              onClick={() => setShowSettings((s) => !s)}
+      <div id="shadow-container">
+        <div id="content">
+          <div id="app-content" className="flex flex-1 flex-col select-none min-h-0">
+            {/* 标题栏 */}
+            <div
+              className="flex h-9 shrink-0 items-center justify-between border-b bg-muted/30 px-2"
             >
-              <SettingsIcon className="size-3.5" />
-            </Button>
-            <Button variant="ghost" size="icon" className="size-8 rounded-none" onClick={() => bridge.minimize()}>
-              <MinusIcon className="size-3.5" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="size-8 rounded-none hover:bg-destructive hover:text-destructive-foreground"
-              onClick={() => bridge.close()}
-            >
-              <XIcon className="size-3.5" />
-            </Button>
-          </div>
-        </div>
-
-        {showSettings ? (
-          <SettingsPage
-            ringtonePath={ringtonePath}
-            activityRingtonePath={activityRingtonePath}
-            isTestPlaying={isTestPlaying}
-            isActivityTestPlaying={isActivityTestPlaying}
-            activityMinutes={activityMinutes}
-            volume={volume}
-            onSelectRingtone={handleSelectRingtone}
-            onTestRingtone={handleTestRingtone}
-            onStopRingtone={handleStopRingtone}
-            onSelectActivityRingtone={handleSelectActivityRingtone}
-            onTestActivityRingtone={handleTestActivityRingtone}
-            onStopActivityRingtone={handleStopActivityRingtone}
-            onActivityMinutesChange={handleActivityMinutesChange}
-            onVolumeChange={handleVolumeChange}
-            onBack={() => setShowSettings(false)}
-          />
-        ) : (
-          /* 主内容 */
-          <div className="flex flex-1 items-start justify-center p-4">
-            <div className="flex w-full max-w-md flex-col gap-4">
-              {/* 标题 */}
-              <div className="text-center">
-                <h1 className="flex items-center justify-center gap-2 font-heading text-xl font-semibold">
-                  <ClockIcon className="size-5 text-primary" />
-                  久坐提醒助手
-                </h1>
-                <p className="mt-1 text-sm text-muted-foreground">定时提醒，守护健康</p>
+              <span className="px-2 text-xs text-muted-foreground">久坐提醒助手</span>
+              <div className="titlebar-controls flex items-center">
+                {/* 设置按钮 */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-8 rounded-none"
+                  onClick={() => setShowSettings((s) => !s)}
+                >
+                  <SettingsIcon className="size-3.5" />
+                </Button>
+                <Button variant="ghost" size="icon" className="size-8 rounded-none" onClick={() => bridge.minimize()}>
+                  <MinusIcon className="size-3.5" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-8 rounded-none hover:bg-destructive hover:text-destructive-foreground"
+                  onClick={() => bridge.close()}
+                >
+                  <XIcon className="size-3.5" />
+                </Button>
               </div>
+            </div>
 
-              {/* 状态显示 */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <StatusBadge status={status} />
-                  {status === "running" && (
-                    <span className="text-xs text-muted-foreground">
-                      {timerType === "sedentary" ? "久坐提醒" : timerType === "activity" ? "活动倒计时" : "稍后提醒"}
-                    </span>
-                  )}
-                </div>
-                {status === "running" && (
-                  <span className="text-sm tabular-nums text-muted-foreground">
-                    {timerType === "activity" ? "活动结束" : "下次提醒"}: {formatTime(remainingSeconds)}
-                  </span>
-                )}
-              </div>
-
-              {/* 进度条 */}
-              <Progress value={status === "idle" ? 0 : progressPercent}>
-                <ProgressValue className="tabular-nums" />
-              </Progress>
-
-              {/* 时间设置 */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">时间设置</CardTitle>
-                  <CardDescription>设置久坐提醒间隔时间</CardDescription>
-                </CardHeader>
-                <CardContent className="flex flex-col gap-3">
-                  <div className="flex gap-1">
-                    {stepperButtons.map((b) => (
-                      <Button
-                        key={b.label}
-                        variant="outline"
-                        size="sm"
-                        className="h-7 flex-1 px-0 text-xs"
-                        disabled={status === "running"}
-                        onClick={() => b.value !== undefined ? handleIntervalChange(b.value) : stepInterval(b.delta)}
-                      >
-                        {b.label}
-                      </Button>
-                    ))}
+            {showSettings ? (
+              <SettingsPage
+                ringtonePath={ringtonePath}
+                activityRingtonePath={activityRingtonePath}
+                isTestPlaying={isTestPlaying}
+                isActivityTestPlaying={isActivityTestPlaying}
+                activityMinutes={activityMinutes}
+                volume={volume}
+                onSelectRingtone={handleSelectRingtone}
+                onTestRingtone={handleTestRingtone}
+                onStopRingtone={handleStopRingtone}
+                onSelectActivityRingtone={handleSelectActivityRingtone}
+                onTestActivityRingtone={handleTestActivityRingtone}
+                onStopActivityRingtone={handleStopActivityRingtone}
+                onActivityMinutesChange={handleActivityMinutesChange}
+                onVolumeChange={handleVolumeChange}
+                onBack={() => setShowSettings(false)}
+              />
+            ) : (
+              /* 主内容 */
+              <div className="flex flex-1 items-start justify-center p-4">
+                <div className="flex w-full max-w-md flex-col gap-4">
+                  {/* 标题 */}
+                  <div className="text-center">
+                    <h1 className="flex items-center justify-center gap-2 font-heading text-xl font-semibold">
+                      <ClockIcon className="size-5 text-primary" />
+                      久坐提醒助手
+                    </h1>
+                    <p className="mt-1 text-sm text-muted-foreground">定时提醒，守护健康</p>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Input
-                      type="number"
-                      min={1}
-                      max={999}
-                      value={intervalMinutes}
-                      disabled={status === "running"}
-                      onChange={(e) => setIntervalMinutes(parseInt(e.target.value) || 0)}
-                      onBlur={() => handleIntervalChange(intervalMinutes)}
-                      className="w-24 text-center"
-                    />
-                    <span className="text-sm text-muted-foreground">分钟</span>
-                    {status === "idle" && (
-                      <span className="ml-auto text-xs text-muted-foreground">失焦自动保存</span>
+
+                  {/* 状态显示 */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <StatusBadge status={status} />
+                      {status === "running" && (
+                        <span className="text-xs text-muted-foreground">
+                          {timerType === "sedentary" ? "久坐提醒" : timerType === "activity" ? "活动倒计时" : "稍后提醒"}
+                        </span>
+                      )}
+                    </div>
+                    {status === "running" && (
+                      <span className="text-sm tabular-nums text-muted-foreground">
+                        {timerType === "activity" ? "活动结束" : "下次提醒"}: {formatTime(remainingSeconds)}
+                      </span>
                     )}
                   </div>
-                </CardContent>
-              </Card>
 
-              {/* 控制按钮 */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">控制</CardTitle>
-                </CardHeader>
-                <CardContent className="flex flex-wrap gap-2">
-                  {status === "idle" && (
-                    <Button className="flex-1" onClick={handleStart}>
-                      <PlayIcon data-icon="inline-start" />
-                      启动
-                    </Button>
-                  )}
-                  {status === "running" && (
-                    <>
-                      <Button variant="secondary" className="flex-1" onClick={handlePause}>
-                        <PauseIcon data-icon="inline-start" />
-                        暂停
-                      </Button>
-                      <Button variant="destructive" className="flex-1" onClick={handleStop}>
-                        <SquareIcon data-icon="inline-start" />
-                        停止
-                      </Button>
-                    </>
-                  )}
-                  {status === "paused" && (
-                    <>
-                      <Button className="flex-1" onClick={handleResume}>
-                        <PlayIcon data-icon="inline-start" />
-                        继续
-                      </Button>
-                      <Button variant="destructive" className="flex-1" onClick={handleStop}>
-                        <SquareIcon data-icon="inline-start" />
-                        停止
-                      </Button>
-                    </>
-                  )}
-                  {status === "finished" && (
-                    <Button className="flex-1" onClick={handleStopAndReset}>
-                      <SkipForwardIcon data-icon="inline-start" />
-                      停止并启动下一次
-                    </Button>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
+                  {/* 进度条 */}
+                  <Progress value={status === "idle" ? 0 : progressPercent}>
+                    <ProgressValue className="tabular-nums" />
+                  </Progress>
+
+                  {/* 时间设置 */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-base">时间设置</CardTitle>
+                      <CardDescription>设置久坐提醒间隔时间</CardDescription>
+                    </CardHeader>
+                    <CardContent className="flex flex-col gap-3">
+                      <div className="flex gap-1">
+                        {stepperButtons.map((b) => (
+                          <Button
+                            key={b.label}
+                            variant="outline"
+                            size="sm"
+                            className="h-7 flex-1 px-0 text-xs"
+                            disabled={status === "running"}
+                            onClick={() => b.value !== undefined ? handleIntervalChange(b.value) : stepInterval(b.delta)}
+                          >
+                            {b.label}
+                          </Button>
+                        ))}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="number"
+                          min={1}
+                          max={999}
+                          value={intervalMinutes}
+                          disabled={status === "running"}
+                          onChange={(e) => setIntervalMinutes(parseInt(e.target.value) || 0)}
+                          onBlur={() => handleIntervalChange(intervalMinutes)}
+                          className="w-24 text-center"
+                        />
+                        <span className="text-sm text-muted-foreground">分钟</span>
+                        {status === "idle" && (
+                          <span className="ml-auto text-xs text-muted-foreground">失焦自动保存</span>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* 控制按钮 */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-base">控制</CardTitle>
+                    </CardHeader>
+                    <CardContent className="flex flex-wrap gap-2">
+                      {status === "idle" && (
+                        <Button className="flex-1" onClick={handleStart}>
+                          <PlayIcon data-icon="inline-start" />
+                          启动
+                        </Button>
+                      )}
+                      {status === "running" && (
+                        <>
+                          <Button variant="secondary" className="flex-1" onClick={handlePause}>
+                            <PauseIcon data-icon="inline-start" />
+                            暂停
+                          </Button>
+                          <Button variant="destructive" className="flex-1" onClick={handleStop}>
+                            <SquareIcon data-icon="inline-start" />
+                            停止
+                          </Button>
+                        </>
+                      )}
+                      {status === "paused" && (
+                        <>
+                          <Button className="flex-1" onClick={handleResume}>
+                            <PlayIcon data-icon="inline-start" />
+                            继续
+                          </Button>
+                          <Button variant="destructive" className="flex-1" onClick={handleStop}>
+                            <SquareIcon data-icon="inline-start" />
+                            停止
+                          </Button>
+                        </>
+                      )}
+                      {status === "finished" && (
+                        <Button className="flex-1" onClick={handleStopAndReset}>
+                          <SkipForwardIcon data-icon="inline-start" />
+                          停止并启动下一次
+                        </Button>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+            )}
+
+            {/* 通知浮层 */}
+            {finishType === "activity" ? (
+              <ActivityDoneOverlay
+                visible={notificationVisible}
+                onStopOnly={handleStopOnly}
+                onStopAndStartNext={handleStopAndStartNext}
+              />
+            ) : (
+              <NotificationOverlay
+                visible={notificationVisible}
+                onStopAndReset={handleStopAndReset}
+                onStartActivity={handleStartActivity}
+                onSnooze={handleSnooze}
+                activityMinutes={tempActivityMinutes}
+                setActivityMinutes={setTempActivityMinutes}
+              />
+            )}
           </div>
-        )}
-
-        {/* 通知浮层 */}
-        {finishType === "activity" ? (
-          <ActivityDoneOverlay
-            visible={notificationVisible}
-            onStopOnly={handleStopOnly}
-            onStopAndStartNext={handleStopAndStartNext}
-          />
-        ) : (
-          <NotificationOverlay
-            visible={notificationVisible}
-            onStopAndReset={handleStopAndReset}
-            onStartActivity={handleStartActivity}
-            onSnooze={handleSnooze}
-            activityMinutes={tempActivityMinutes}
-            setActivityMinutes={setTempActivityMinutes}
-          />
-        )}
+        </div>
       </div>
     </TooltipProvider>
   )
