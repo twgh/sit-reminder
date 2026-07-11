@@ -74,7 +74,7 @@ func NewMainWindow(edg *edge.Edge) *MainWindow {
 	m.w, m.wv, err = m.edg.NewWebViewWithWindow(
 		edge.WithXmlWindowTitle("久坐提醒助手"),
 		edge.WithXmlWindowClassName(g.AppName),
-		edge.WithXmlWindowSize(480, 528),
+		edge.WithXmlWindowSize(480, 536),
 		edge.WithFillParent(true),
 		edge.WithDebug(g.IsDebug()),
 		edge.WithDefaultContextMenus(g.IsDebug()),
