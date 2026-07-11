@@ -64,7 +64,7 @@ function NotificationOverlay({
   if (!visible) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+    <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
       <Card className="mx-4 w-full max-w-sm ring-2 ring-destructive/50">
         <CardHeader className="text-center">
           <div className="mx-auto mb-3 flex size-16 items-center justify-center rounded-full bg-destructive/10">
@@ -123,7 +123,7 @@ function ActivityDoneOverlay({
   if (!visible) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+    <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
       <Card className="mx-4 w-full max-w-sm ring-2 ring-primary/50">
         <CardHeader className="text-center">
           <div className="mx-auto mb-3 flex size-16 items-center justify-center rounded-full bg-primary/10">
