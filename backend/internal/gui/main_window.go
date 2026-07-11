@@ -76,7 +76,6 @@ func NewMainWindow(edg *edge.Edge) *MainWindow {
 		edge.WithXmlWindowClassName(g.AppName),
 		edge.WithXmlWindowSize(480, 528),
 		edge.WithFillParent(true),
-		edge.WithAppDrag(true),
 		edge.WithDebug(g.IsDebug()),
 		edge.WithDefaultContextMenus(g.IsDebug()),
 		edge.WithBrowserAcceleratorKeys(g.IsDebug()),
@@ -92,6 +91,9 @@ func NewMainWindow(edg *edge.Edge) *MainWindow {
 
 	// 禁止拖拽边框改变窗口大小
 	m.w.EnableDragBorder(false)
+
+	// 设置为透明窗口
+	m.w.SetTransparentType(xcc.Window_Transparent_Shaped)
 
 	// 从资源中加载程序图标
 	hIconApp := wapi.LoadImageW(wapi.GetModuleHandleW(""), common.StrPtr("APPICON"), wapi.IMAGE_ICON, 0, 0, wapi.LR_SHARED|wapi.LR_DEFAULTSIZE)
@@ -207,6 +209,11 @@ func (m *MainWindow) bindFunctions() {
 	})
 	m.wv.Bind("api.close", func() {
 		m.w.CloseWindow()
+	})
+
+	// 设置窗口位置（供 JS WindowDrag 调用）
+	m.wv.Bind("wnd.setPos", func(x, y int32) {
+		m.w.SetPosition(m.w.DpiConv(x), m.w.DpiConv(y))
 	})
 
 	// ===== 定时器控制 =====
