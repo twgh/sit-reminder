@@ -197,8 +197,8 @@ func (m *MainWindow) regWebViewEvents() {
 		if uri == m.getHost()+"/index.html" {
 			if firstLoad {
 				firstLoad = false
-				if m.hideOnStart {
-					m.wv.Show(false)
+				if m.hideOnStart { // 开机自启时不显示窗口
+					m.wv.Show(false) // 顺带隐藏 WebView, 这会使其进入效率模式
 				} else {
 					m.w.Show()
 				}
@@ -364,7 +364,7 @@ func (m *MainWindow) activateWindow() {
 }
 
 // hideWindow 隐藏窗口和 WebView
-//   - 加一个 WebView 的隐藏是因为这样能让它在后台自动变成效能模式
+//   - 加一个 WebView 的隐藏是因为这样能让它在后台自动变成效率模式
 func (m *MainWindow) hideWindow() {
 	m.wv.Show(false)
 	m.w.Show(false)
@@ -401,6 +401,7 @@ func (m *MainWindow) setAutoStart(enabled bool) error {
 			"/t", "REG_SZ",
 			"/d", exePath+" -hide",
 			"/f")
+		cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
 		if err := cmd.Run(); err != nil {
 			return fmt.Errorf("写入注册表失败: %w", err)
 		}
@@ -409,6 +410,7 @@ func (m *MainWindow) setAutoStart(enabled bool) error {
 			`HKCU\Software\Microsoft\Windows\CurrentVersion\Run`,
 			"/v", g.AppName,
 			"/f")
+		cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
 		if err := cmd.Run(); err != nil {
 			return fmt.Errorf("删除注册表失败: %w", err)
 		}
