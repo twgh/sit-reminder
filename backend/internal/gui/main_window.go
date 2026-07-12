@@ -323,9 +323,9 @@ func (m *MainWindow) bindFunctions() {
 		m.mu.Unlock()
 		m.applyAlwaysOnTop(enabled)
 	})
-	m.wv.Bind("api.setDarkMode", func(enabled bool) {
+	m.wv.Bind("api.setThemeMode", func(mode string) {
 		m.mu.Lock()
-		m.config.DarkMode = enabled
+		m.config.ThemeMode = mode
 		m.mu.Unlock()
 	})
 	m.wv.Bind("api.setAutoStart", func(enabled bool) string {

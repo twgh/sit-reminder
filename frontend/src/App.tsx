@@ -29,6 +29,7 @@ import {
 import { bridge, type AppConfig, type TimerStatus, type TimerFinishType, type TimerType } from "@/lib/bridge"
 import WindowDrag from "@/lib/window-drag"
 import { useTheme } from "@/components/theme-provider"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 const DEFAULT_RINGTONE = "未设置"
 
@@ -226,7 +227,7 @@ function SettingsPage({
   volume,
   autoHide,
   alwaysOnTop,
-  darkMode,
+  themeMode,
   autoStart,
   appVersion,
   onSelectRingtone,
@@ -239,7 +240,7 @@ function SettingsPage({
   onVolumeChange,
   onAutoHideChange,
   onAlwaysOnTopChange,
-  onDarkModeChange,
+  onThemeModeChange,
   onAutoStartChange,
   onBack,
 }: {
@@ -251,7 +252,7 @@ function SettingsPage({
   volume: number
   autoHide: boolean
   alwaysOnTop: boolean
-  darkMode: boolean
+  themeMode: string
   autoStart: boolean
   appVersion: string
   onSelectRingtone: () => void
@@ -264,7 +265,7 @@ function SettingsPage({
   onVolumeChange: (value: number) => void
   onAutoHideChange: (enabled: boolean) => void
   onAlwaysOnTopChange: (enabled: boolean) => void
-  onDarkModeChange: (enabled: boolean) => void
+  onThemeModeChange: (mode: string) => void
   onAutoStartChange: (enabled: boolean) => void
   onBack: () => void
 }) {
@@ -401,8 +402,17 @@ function SettingsPage({
               <Switch checked={alwaysOnTop} onCheckedChange={onAlwaysOnTopChange} />
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm">深色模式</span>
-              <Switch checked={darkMode} onCheckedChange={onDarkModeChange} />
+              <span className="text-sm">主题模式</span>
+              <Select value={themeMode} onValueChange={(v) => v && onThemeModeChange(v)}>
+                <SelectTrigger className="w-28" size="sm">
+                  <SelectValue render={(value) => { const labels: Record<string, string> = { light: "浅色", dark: "深色", system: "跟随系统" }; return <>{labels[String(value)] || String(value)}</>; }} />
+                </SelectTrigger>
+                <SelectContent align="end">
+                  <SelectItem value="light">浅色</SelectItem>
+                  <SelectItem value="dark">深色</SelectItem>
+                  <SelectItem value="system">跟随系统</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm">开机自启</span>
@@ -440,7 +450,7 @@ export function App() {
   const [volume, setVolume] = useState(1000)
   const [autoHide, setAutoHide] = useState(false)
   const [alwaysOnTop, setAlwaysOnTop] = useState(true)
-  const [darkMode, setDarkMode] = useState(false)
+  const [themeMode, setThemeMode] = useState("system")
   const [autoStart, setAutoStart] = useState(false)
   const [appVersion, setAppVersion] = useState("")
 
@@ -489,14 +499,10 @@ export function App() {
       }
       setAutoHide(!!config.autoHide)
       setAlwaysOnTop(config.alwaysOnTop !== false)
-      setDarkMode(!!config.darkMode)
+      setThemeMode(config.themeMode || "system")
       setAutoStart(!!config.autoStart)
-      // 同步深色模式到主题
-      if (config.darkMode) {
-        setTheme("dark")
-      } else {
-        setTheme("light")
-      }
+      // 同步主题模式
+      setTheme((config.themeMode as "dark" | "light" | "system") || "system")
     }
 
     window.__activityStarted = (_minutes: number) => {
@@ -527,14 +533,10 @@ export function App() {
         }
         setAutoHide(!!config.autoHide)
         setAlwaysOnTop(config.alwaysOnTop !== false)
-        setDarkMode(!!config.darkMode)
+        setThemeMode(config.themeMode || "system")
         setAutoStart(!!config.autoStart)
-        // 同步深色模式到主题
-        if (config.darkMode) {
-          setTheme("dark")
-        } else {
-          setTheme("light")
-        }
+        // 同步主题模式
+        setTheme((config.themeMode as "dark" | "light" | "system") || "system")
       }
     })
 
@@ -739,12 +741,12 @@ export function App() {
     await bridge.saveConfig()
   }, [])
 
-  // 修改深色模式
-  const handleDarkModeChange = useCallback(async (enabled: boolean) => {
-    setDarkMode(enabled)
+  // 修改主题模式
+  const handleThemeModeChange = useCallback(async (mode: string) => {
+    setThemeMode(mode)
     // 同步主题
-    setTheme(enabled ? "dark" : "light")
-    await bridge.setDarkMode(enabled)
+    setTheme(mode as "dark" | "light" | "system")
+    await bridge.setThemeMode(mode)
     await bridge.saveConfig()
   }, [setTheme])
 
@@ -831,7 +833,7 @@ export function App() {
                 volume={volume}
                 autoHide={autoHide}
                 alwaysOnTop={alwaysOnTop}
-                darkMode={darkMode}
+                themeMode={themeMode}
                 autoStart={autoStart}
                 appVersion={appVersion}
                 onSelectRingtone={handleSelectRingtone}
@@ -844,7 +846,7 @@ export function App() {
                 onVolumeChange={handleVolumeChange}
                 onAutoHideChange={handleAutoHideChange}
                 onAlwaysOnTopChange={handleAlwaysOnTopChange}
-                onDarkModeChange={handleDarkModeChange}
+                onThemeModeChange={handleThemeModeChange}
                 onAutoStartChange={handleAutoStartChange}
                 onBack={() => setShowSettings(false)}
               />

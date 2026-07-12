@@ -8,7 +8,7 @@ export interface AppConfig {
   volume: number
   autoHide: boolean
   alwaysOnTop: boolean
-  darkMode: boolean
+  themeMode: string // "dark" | "light" | "system"
   autoStart: boolean
 }
 
@@ -45,7 +45,7 @@ declare global {
       setVolume: (volume: number) => Promise<void>
       setAutoHide: (enabled: boolean) => Promise<void>
       setAlwaysOnTop: (enabled: boolean) => Promise<void>
-      setDarkMode: (enabled: boolean) => Promise<void>
+      setThemeMode: (mode: string) => Promise<void>
       setAutoStart: (enabled: boolean) => Promise<string>
       // 系统
       getVersion: () => Promise<string>
@@ -104,7 +104,7 @@ export const bridge = {
   setVolume: (volume: number) => callApi<void>("setVolume", volume),
   setAutoHide: (enabled: boolean) => callApi<void>("setAutoHide", enabled),
   setAlwaysOnTop: (enabled: boolean) => callApi<void>("setAlwaysOnTop", enabled),
-  setDarkMode: (enabled: boolean) => callApi<void>("setDarkMode", enabled),
+  setThemeMode: (mode: string) => callApi<void>("setThemeMode", mode),
   setAutoStart: (enabled: boolean) => callApi<string>("setAutoStart", enabled),
   getVersion: () => callApi<string>("getVersion"),
 }
