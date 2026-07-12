@@ -14,7 +14,8 @@ type AppConfig struct {
 	ActivityRingtonePath string `yaml:"activity_ringtone_path" json:"activityRingtonePath"` // 活动结束铃声路径
 	ActivityMinutes      int    `yaml:"activity_minutes" json:"activityMinutes"`            // 活动倒计时分钟数
 	Volume               int    `yaml:"volume" json:"volume"`                               // 播放音量, 0-1000
-	AutoHide             bool   `yaml:"auto_hide" json:"autoHide"`                          // 启动提醒后隐藏窗口
+	AutoHide             bool   `yaml:"auto_hide" json:"autoHide"`                          // 开始提醒倒计时后隐藏窗口
+	AlwaysOnTop          bool   `yaml:"always_on_top" json:"alwaysOnTop"`                   // 窗口总在最前
 }
 
 func NewAppConfig() *AppConfig {
@@ -24,6 +25,7 @@ func NewAppConfig() *AppConfig {
 		ActivityRingtonePath: "",
 		ActivityMinutes:      5,
 		Volume:               1000,
+		AlwaysOnTop:          true,
 	}
 }
 

@@ -7,6 +7,7 @@ export interface AppConfig {
   activityMinutes: number
   volume: number
   autoHide: boolean
+  alwaysOnTop: boolean
 }
 
 export type TimerStatus = "idle" | "running" | "paused" | "finished"
@@ -41,6 +42,7 @@ declare global {
       setActivityMinutes: (minutes: number) => Promise<void>
       setVolume: (volume: number) => Promise<void>
       setAutoHide: (enabled: boolean) => Promise<void>
+      setAlwaysOnTop: (enabled: boolean) => Promise<void>
       // 系统
       getVersion: () => Promise<string>
     }
@@ -97,5 +99,6 @@ export const bridge = {
   setActivityMinutes: (minutes: number) => callApi<void>("setActivityMinutes", minutes),
   setVolume: (volume: number) => callApi<void>("setVolume", volume),
   setAutoHide: (enabled: boolean) => callApi<void>("setAutoHide", enabled),
+  setAlwaysOnTop: (enabled: boolean) => callApi<void>("setAlwaysOnTop", enabled),
   getVersion: () => callApi<string>("getVersion"),
 }

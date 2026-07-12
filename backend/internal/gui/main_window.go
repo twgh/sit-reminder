@@ -95,6 +95,9 @@ func NewMainWindow(edg *edge.Edge) *MainWindow {
 	// 设置为透明窗口
 	m.w.SetTransparentType(xcc.Window_Transparent_Shaped)
 
+	// 根据配置设置窗口置顶
+	m.applyAlwaysOnTop(m.config.AlwaysOnTop)
+
 	// 从资源中加载程序图标
 	hMod := wapi.GetModuleHandleW("")
 	hIconApp := wapi.LoadImageW(hMod, common.StrPtr("APPICON"), wapi.IMAGE_ICON, 0, 0, wapi.LR_SHARED|wapi.LR_DEFAULTSIZE)
@@ -308,6 +311,12 @@ func (m *MainWindow) bindFunctions() {
 		m.config.AutoHide = enabled
 		m.mu.Unlock()
 	})
+	m.wv.Bind("api.setAlwaysOnTop", func(enabled bool) {
+		m.mu.Lock()
+		m.config.AlwaysOnTop = enabled
+		m.mu.Unlock()
+		m.applyAlwaysOnTop(enabled)
+	})
 
 	// ===== 系统信息 =====
 	m.wv.Bind("api.getVersion", func() string {
@@ -319,7 +328,9 @@ func (m *MainWindow) bindFunctions() {
 func (m *MainWindow) activateWindow() {
 	m.wv.Show() // 显示 WebView
 	m.w.ShowWindow(xcc.SW_SHOWNORMAL)
-	m.w.SetTop().SetTop(false)
+	if !m.config.AlwaysOnTop {
+		m.w.SetTop().SetTop(false)
+	}
 	// 恢复关闭按钮的 hover 样式: 移除 body 上的禁用 class
 	m.wv.Eval(`document.body.classList.remove('close-hover-disabled')`)
 }
@@ -341,4 +352,9 @@ func (m *MainWindow) maybeHideAfterStart() {
 			m.hideWindow()
 		})
 	}
+}
+
+// applyAlwaysOnTop 设置窗口是否置顶
+func (m *MainWindow) applyAlwaysOnTop(enabled bool) {
+	m.w.SetTop(enabled)
 }
