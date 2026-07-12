@@ -13,7 +13,7 @@ for /f "tokens=1,2,3 delims=/ " %%a in ('date /t') do (
     set month=%%b
     set day=%%c
 )
-set datestr=%year%.%month%.%day%
+set "datestr=%year%.%month%.%day%.0"
 echo 版本号: %datestr%
 
 REM 设置编译参数
