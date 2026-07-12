@@ -7,7 +7,9 @@ import { Progress, ProgressValue } from "@/components/ui/progress"
 import { Separator } from "@/components/ui/separator"
 import { Slider } from "@/components/ui/slider"
 import { Switch } from "@/components/ui/switch"
-import { TooltipProvider } from "@/components/ui/tooltip"
+import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
+import { Toaster } from "@/components/ui/sonner"
+import { toast } from "sonner"
 import {
   PlayIcon,
   SquareIcon,
@@ -78,7 +80,7 @@ function NotificationOverlay({
       if (e.code === "Space") {
         e.preventDefault()
         onStartActivity()
-      } else if (e.code === "End") {
+      } else if (e.code === "KeyS") {
         e.preventDefault()
         onStopAndReset()
       } else if (e.code === "Digit1" || e.code === "Numpad1") {
@@ -109,10 +111,10 @@ function NotificationOverlay({
           <CardDescription className="select-none">久坐对健康不利，站起来走走吧！</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
-          <Button size="lg" className="w-full" onClick={onStartActivity}>
-            <DumbbellIcon data-icon="inline-start" />
-            开始{activityMinutes}分钟活动倒计时
-          </Button>
+          <Tooltip>
+            <TooltipTrigger render={<Button size="lg" className="w-full" onClick={onStartActivity}><DumbbellIcon data-icon="inline-start" />开始{activityMinutes}分钟活动倒计时</Button>} />
+            <TooltipContent>快捷键 <kbd data-slot="kbd">Space</kbd></TooltipContent>
+          </Tooltip>
           {/* 活动时间设置 */}
           <div className="flex items-center justify-center gap-2">
             <span className="text-sm text-muted-foreground">活动时间:</span>
@@ -126,17 +128,26 @@ function NotificationOverlay({
             />
             <span className="text-sm text-muted-foreground">分钟</span>
           </div>
-          <Button variant="secondary" size="lg" className="w-full" onClick={onStopAndReset}>
-            <SquareIcon data-icon="inline-start" />
-            停止并返回
-          </Button>
+          <Tooltip>
+            <TooltipTrigger render={<Button variant="secondary" size="lg" className="w-full" onClick={onStopAndReset}><SquareIcon data-icon="inline-start" />停止并返回</Button>} />
+            <TooltipContent>快捷键 <kbd data-slot="kbd">S</kbd></TooltipContent>
+          </Tooltip>
           <Separator />
           <div className="flex flex-col gap-2">
             <p className="text-center text-xs text-muted-foreground select-none">稍后提醒</p>
             <div className="flex gap-2">
-              <Button variant="outline" className="flex-1" size="sm" onClick={() => onSnooze(3)}>3 分钟</Button>
-              <Button variant="outline" className="flex-1" size="sm" onClick={() => onSnooze(5)}>5 分钟</Button>
-              <Button variant="outline" className="flex-1" size="sm" onClick={() => onSnooze(10)}>10 分钟</Button>
+              <Tooltip>
+                <TooltipTrigger render={<Button variant="outline" className="flex-1" size="sm" onClick={() => onSnooze(3)}>3 分钟</Button>} />
+                <TooltipContent>快捷键 <kbd data-slot="kbd">1</kbd></TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger render={<Button variant="outline" className="flex-1" size="sm" onClick={() => onSnooze(5)}>5 分钟</Button>} />
+                <TooltipContent>快捷键 <kbd data-slot="kbd">2</kbd></TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger render={<Button variant="outline" className="flex-1" size="sm" onClick={() => onSnooze(10)}>10 分钟</Button>} />
+                <TooltipContent>快捷键 <kbd data-slot="kbd">3</kbd></TooltipContent>
+              </Tooltip>
             </div>
           </div>
         </CardContent>
@@ -155,7 +166,7 @@ function ActivityDoneOverlay({
   onStopOnly: () => void
   onStopAndStartNext: () => void
 }) {
-  // 快捷键：Space 开始下一次 / End 停止
+  // 快捷键：Space 开始下一次 / S 停止
   useEffect(() => {
     if (!visible) return
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -163,7 +174,7 @@ function ActivityDoneOverlay({
       if (e.code === "Space") {
         e.preventDefault()
         onStopAndStartNext()
-      } else if (e.code === "End") {
+      } else if (e.code === "KeyS") {
         e.preventDefault()
         onStopOnly()
       }
@@ -185,14 +196,14 @@ function ActivityDoneOverlay({
           <CardDescription className="select-none">活动时间结束，该回去继续工作啦~</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
-          <Button size="lg" className="w-full" onClick={onStopAndStartNext}>
-            <SkipForwardIcon data-icon="inline-start" />
-            开始下一次久坐提醒
-          </Button>
-          <Button variant="secondary" size="lg" className="w-full" onClick={onStopOnly}>
-            <SquareIcon data-icon="inline-start" />
-            停止
-          </Button>
+          <Tooltip>
+            <TooltipTrigger render={<Button size="lg" className="w-full" onClick={onStopAndStartNext}><SkipForwardIcon data-icon="inline-start" />开始下一次久坐提醒</Button>} />
+            <TooltipContent>快捷键 <kbd data-slot="kbd">Space</kbd></TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger render={<Button variant="secondary" size="lg" className="w-full" onClick={onStopOnly}><SquareIcon data-icon="inline-start" />停止</Button>} />
+            <TooltipContent>快捷键 <kbd data-slot="kbd">S</kbd></TooltipContent>
+          </Tooltip>
         </CardContent>
       </Card>
     </div>
@@ -589,6 +600,40 @@ export function App() {
     setFinishType("sedentary")
   }, [intervalMinutes])
 
+  // 主界面快捷键：Space 启动/继续 / P 暂停 / S 停止
+  useEffect(() => {
+    // 设置页或通知浮层可见时不响应主界面快捷键
+    if (showSettings || notificationVisible) return
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.repeat) return
+      // 不拦截输入框内的按键
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement
+      )
+        return
+
+      if (e.code === "Space") {
+        if (status === "idle") {
+          e.preventDefault()
+          handleStart()
+        } else if (status === "paused") {
+          e.preventDefault()
+          handleResume()
+        }
+      } else if (e.code === "KeyP" && status === "running") {
+        e.preventDefault()
+        handlePause()
+      } else if (e.code === "KeyS" && (status === "running" || status === "paused")) {
+        e.preventDefault()
+        handleStop()
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [showSettings, notificationVisible, status, handleStart, handleResume, handlePause, handleStop])
+
   // 修改间隔时间
   const handleIntervalChange = useCallback(async (value: number) => {
     const clamped = Math.max(1, Math.min(999, value))
@@ -694,7 +739,12 @@ export function App() {
   // 修改开机自启
   const handleAutoStartChange = useCallback(async (enabled: boolean) => {
     setAutoStart(enabled)
-    await bridge.setAutoStart(enabled)
+    const errMsg = await bridge.setAutoStart(enabled)
+    if (errMsg) {
+      setAutoStart(false) // 失败时回滚 UI
+      toast.error(errMsg)
+      return
+    }
     await bridge.saveConfig()
   }, [])
 
@@ -756,6 +806,8 @@ export function App() {
                 </Button>
               </div>
             </div>
+
+            <Toaster richColors closeButton />
 
             {showSettings ? (
               <SettingsPage
@@ -866,33 +918,33 @@ export function App() {
                     </CardHeader>
                     <CardContent className="flex flex-wrap gap-2">
                       {status === "idle" && (
-                        <Button className="flex-1" onClick={handleStart}>
-                          <PlayIcon data-icon="inline-start" />
-                          启动
-                        </Button>
+                        <Tooltip>
+                          <TooltipTrigger render={<Button className="flex-1" onClick={handleStart}><PlayIcon data-icon="inline-start" />启动</Button>} />
+                          <TooltipContent>快捷键 <kbd data-slot="kbd">Space</kbd></TooltipContent>
+                        </Tooltip>
                       )}
                       {status === "running" && (
                         <>
-                          <Button variant="secondary" className="flex-1" onClick={handlePause}>
-                            <PauseIcon data-icon="inline-start" />
-                            暂停
-                          </Button>
-                          <Button variant="destructive" className="flex-1" onClick={handleStop}>
-                            <SquareIcon data-icon="inline-start" />
-                            停止
-                          </Button>
+                          <Tooltip>
+                            <TooltipTrigger render={<Button variant="secondary" className="flex-1" onClick={handlePause}><PauseIcon data-icon="inline-start" />暂停</Button>} />
+                            <TooltipContent>快捷键 <kbd data-slot="kbd">P</kbd></TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger render={<Button variant="destructive" className="flex-1" onClick={handleStop}><SquareIcon data-icon="inline-start" />停止</Button>} />
+                            <TooltipContent>快捷键 <kbd data-slot="kbd">S</kbd></TooltipContent>
+                          </Tooltip>
                         </>
                       )}
                       {status === "paused" && (
                         <>
-                          <Button className="flex-1" onClick={handleResume}>
-                            <PlayIcon data-icon="inline-start" />
-                            继续
-                          </Button>
-                          <Button variant="destructive" className="flex-1" onClick={handleStop}>
-                            <SquareIcon data-icon="inline-start" />
-                            停止
-                          </Button>
+                          <Tooltip>
+                            <TooltipTrigger render={<Button className="flex-1" onClick={handleResume}><PlayIcon data-icon="inline-start" />继续</Button>} />
+                            <TooltipContent>快捷键 <kbd data-slot="kbd">Space</kbd></TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger render={<Button variant="destructive" className="flex-1" onClick={handleStop}><SquareIcon data-icon="inline-start" />停止</Button>} />
+                            <TooltipContent>快捷键 <kbd data-slot="kbd">S</kbd></TooltipContent>
+                          </Tooltip>
                         </>
                       )}
                       {status === "finished" && (
