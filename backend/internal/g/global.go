@@ -4,7 +4,7 @@ package g
 var DebugState = "1"
 
 // Version 版本号
-var Version = "2026.7.5"
+var Version = "2026.7.5.0"
 
 // AppName 应用名称, 英文, 用于配置目录创建, 窗口类名
 var AppName = "sit-reminder"
