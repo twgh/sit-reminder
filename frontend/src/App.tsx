@@ -366,7 +366,7 @@ export function App() {
     // 使用 WindowDrag 让窗口空白区域可拖动
     const cleanup = WindowDrag.enable(
       '#app-content',
-      'button, a, input, select, textarea, slider'
+      'button, a, input, select, textarea, [data-slot="slider"], [data-slot="switch"]'
     )
 
     window.__timerTick = (remaining: number, total: number) => {
