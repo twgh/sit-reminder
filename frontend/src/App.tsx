@@ -157,6 +157,7 @@ function SettingsPage({
   activityMinutes,
   volume,
   autoHide,
+  alwaysOnTop,
   appVersion,
   onSelectRingtone,
   onTestRingtone,
@@ -167,6 +168,7 @@ function SettingsPage({
   onActivityMinutesChange,
   onVolumeChange,
   onAutoHideChange,
+  onAlwaysOnTopChange,
   onBack,
 }: {
   ringtonePath: string
@@ -176,6 +178,7 @@ function SettingsPage({
   activityMinutes: number
   volume: number
   autoHide: boolean
+  alwaysOnTop: boolean
   appVersion: string
   onSelectRingtone: () => void
   onTestRingtone: () => void
@@ -186,18 +189,11 @@ function SettingsPage({
   onActivityMinutesChange: (value: number) => void
   onVolumeChange: (value: number) => void
   onAutoHideChange: (enabled: boolean) => void
+  onAlwaysOnTopChange: (enabled: boolean) => void
   onBack: () => void
 }) {
   // 音量在 UI 上使用 0-100 的百分比，配置中存储 0-1000
   const volumePercent = Math.round(volume / 10)
-
-  // 活动时间步进按钮
-  const activitySteppers = [
-    { label: "+1", delta: 1 },
-    { label: "-1", delta: -1 },
-    { label: "+3", delta: 3 },
-    { label: "-3", delta: -3 },
-  ]
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -219,7 +215,6 @@ function SettingsPage({
         <Card>
           <CardHeader>
             <CardTitle className="text-base">久坐提醒铃声</CardTitle>
-            <CardDescription>久坐提醒时播放的铃声</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -248,7 +243,6 @@ function SettingsPage({
         <Card>
           <CardHeader>
             <CardTitle className="text-base">活动结束铃声</CardTitle>
-            <CardDescription>活动倒计时结束时播放</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -276,23 +270,9 @@ function SettingsPage({
         {/* 活动时间设置 */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">活动时间</CardTitle>
-            <CardDescription>久坐提醒后的活动时长</CardDescription>
+            <CardTitle className="text-base">久坐提醒后的活动时长</CardTitle>
           </CardHeader>
-          <CardContent className="flex flex-col gap-3">
-            <div className="flex gap-1">
-              {activitySteppers.map((b) => (
-                <Button
-                  key={b.label}
-                  variant="outline"
-                  size="sm"
-                  className="h-7 flex-1 px-0 text-xs"
-                  onClick={() => onActivityMinutesChange(activityMinutes + b.delta)}
-                >
-                  {b.label}
-                </Button>
-              ))}
-            </div>
+          <CardContent>
             <div className="flex items-center gap-2">
               <Input
                 type="number"
@@ -311,8 +291,7 @@ function SettingsPage({
         {/* 音量设置 */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">音量</CardTitle>
-            <CardDescription>铃声播放时使用的音量</CardDescription>
+            <CardTitle className="text-base">铃声播放音量</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
             <div className="flex items-center gap-3">
@@ -331,22 +310,26 @@ function SettingsPage({
           </CardContent>
         </Card>
 
-        {/* 启动后隐藏界面 */}
+        {/* 其它设置 */}
         <Card>
           <CardHeader>
             <CardTitle className="text-base">其它设置</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="flex flex-col gap-4">
             <div className="flex items-center justify-between">
               <span className="text-sm">开始提醒倒计时后隐藏界面到托盘</span>
               <Switch checked={autoHide} onCheckedChange={onAutoHideChange} />
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm">窗口总在最前</span>
+              <Switch checked={alwaysOnTop} onCheckedChange={onAlwaysOnTopChange} />
             </div>
           </CardContent>
         </Card>
 
         {/* 版本号 */}
         <div className="pb-4 text-center text-xs text-muted-foreground">
-          v{appVersion || "—"}
+          版本号: {appVersion || "—"}&nbsp;&nbsp;|&nbsp;&nbsp;作者: twgh
         </div>
       </div>
       </div>
@@ -371,6 +354,7 @@ export function App() {
   const [tempActivityMinutes, setTempActivityMinutes] = useState(5)
   const [volume, setVolume] = useState(1000)
   const [autoHide, setAutoHide] = useState(false)
+  const [alwaysOnTop, setAlwaysOnTop] = useState(true)
   const [appVersion, setAppVersion] = useState("")
 
   // 跟踪最新的活动时长，供 __timerFinished 回调读取，避免闭包陈旧
@@ -382,7 +366,7 @@ export function App() {
     // 使用 WindowDrag 让窗口空白区域可拖动
     const cleanup = WindowDrag.enable(
       '#app-content',
-      'button, a, input, select, textarea, [role="button"], [role="slider"]'
+      'button, a, input, select, textarea, slider'
     )
 
     window.__timerTick = (remaining: number, total: number) => {
@@ -417,6 +401,7 @@ export function App() {
         setVolume(config.volume)
       }
       setAutoHide(!!config.autoHide)
+      setAlwaysOnTop(config.alwaysOnTop !== false)
     }
 
     window.__activityStarted = (_minutes: number) => {
@@ -446,6 +431,7 @@ export function App() {
           setVolume(config.volume)
         }
         setAutoHide(!!config.autoHide)
+        setAlwaysOnTop(config.alwaysOnTop !== false)
       }
     })
 
@@ -603,6 +589,13 @@ export function App() {
     await bridge.saveConfig()
   }, [])
 
+  // 修改窗口置顶
+  const handleAlwaysOnTopChange = useCallback(async (enabled: boolean) => {
+    setAlwaysOnTop(enabled)
+    await bridge.setAlwaysOnTop(enabled)
+    await bridge.saveConfig()
+  }, [])
+
   // 开始活动倒计时（使用自定义分钟数）
   const handleStartActivity = useCallback(async () => {
     await bridge.startActivityTimerWithMinutes(tempActivityMinutes)
@@ -671,6 +664,7 @@ export function App() {
                 activityMinutes={activityMinutes}
                 volume={volume}
                 autoHide={autoHide}
+                alwaysOnTop={alwaysOnTop}
                 appVersion={appVersion}
                 onSelectRingtone={handleSelectRingtone}
                 onTestRingtone={handleTestRingtone}
@@ -681,6 +675,7 @@ export function App() {
                 onActivityMinutesChange={handleActivityMinutesChange}
                 onVolumeChange={handleVolumeChange}
                 onAutoHideChange={handleAutoHideChange}
+                onAlwaysOnTopChange={handleAlwaysOnTopChange}
                 onBack={() => setShowSettings(false)}
               />
             ) : (
