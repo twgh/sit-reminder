@@ -46,7 +46,7 @@ declare global {
       setAutoHide: (enabled: boolean) => Promise<void>
       setAlwaysOnTop: (enabled: boolean) => Promise<void>
       setDarkMode: (enabled: boolean) => Promise<void>
-      setAutoStart: (enabled: boolean) => Promise<void>
+      setAutoStart: (enabled: boolean) => Promise<string>
       // 系统
       getVersion: () => Promise<string>
     }
@@ -105,6 +105,6 @@ export const bridge = {
   setAutoHide: (enabled: boolean) => callApi<void>("setAutoHide", enabled),
   setAlwaysOnTop: (enabled: boolean) => callApi<void>("setAlwaysOnTop", enabled),
   setDarkMode: (enabled: boolean) => callApi<void>("setDarkMode", enabled),
-  setAutoStart: (enabled: boolean) => callApi<void>("setAutoStart", enabled),
+  setAutoStart: (enabled: boolean) => callApi<string>("setAutoStart", enabled),
   getVersion: () => callApi<string>("getVersion"),
 }

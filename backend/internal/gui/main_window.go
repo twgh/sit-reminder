@@ -323,11 +323,21 @@ func (m *MainWindow) bindFunctions() {
 		m.config.DarkMode = enabled
 		m.mu.Unlock()
 	})
-	m.wv.Bind("api.setAutoStart", func(enabled bool) {
+	m.wv.Bind("api.setAutoStart", func(enabled bool) string {
 		m.mu.Lock()
 		m.config.AutoStart = enabled
 		m.mu.Unlock()
-		m.setAutoStart(enabled)
+		if err := m.setAutoStart(enabled); err != nil {
+			// 回滚配置
+			m.mu.Lock()
+			m.config.AutoStart = false
+			m.mu.Unlock()
+			if enabled {
+				return "设置开机自启失败：" + err.Error()
+			}
+			return "取消开机自启失败：" + err.Error()
+		}
+		return ""
 	})
 
 	// ===== 系统信息 =====
@@ -372,11 +382,10 @@ func (m *MainWindow) applyAlwaysOnTop(enabled bool) {
 }
 
 // setAutoStart 设置/取消开机自启（通过注册表 HKCU\...\Run）
-func (m *MainWindow) setAutoStart(enabled bool) {
+func (m *MainWindow) setAutoStart(enabled bool) error {
 	exePath, err := os.Executable()
 	if err != nil {
-		log.Println("获取可执行文件路径失败:", err)
-		return
+		return fmt.Errorf("获取可执行文件路径失败: %w", err)
 	}
 
 	if enabled {
@@ -387,7 +396,7 @@ func (m *MainWindow) setAutoStart(enabled bool) {
 			"/d", exePath,
 			"/f")
 		if err := cmd.Run(); err != nil {
-			log.Println("设置开机自启失败:", err)
+			return fmt.Errorf("写入注册表失败: %w", err)
 		}
 	} else {
 		cmd := exec.Command("reg", "delete",
@@ -395,7 +404,8 @@ func (m *MainWindow) setAutoStart(enabled bool) {
 			"/v", g.AppName,
 			"/f")
 		if err := cmd.Run(); err != nil {
-			log.Println("删除开机自启失败:", err)
+			return fmt.Errorf("删除注册表失败: %w", err)
 		}
 	}
+	return nil
 }
