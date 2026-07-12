@@ -16,6 +16,8 @@ type AppConfig struct {
 	Volume               int    `yaml:"volume" json:"volume"`                               // 播放音量, 0-1000
 	AutoHide             bool   `yaml:"auto_hide" json:"autoHide"`                          // 开始提醒倒计时后隐藏窗口
 	AlwaysOnTop          bool   `yaml:"always_on_top" json:"alwaysOnTop"`                   // 窗口总在最前
+	DarkMode             bool   `yaml:"dark_mode" json:"darkMode"`                          // 深色模式
+	AutoStart            bool   `yaml:"auto_start" json:"autoStart"`                        // 开机自启
 }
 
 func NewAppConfig() *AppConfig {

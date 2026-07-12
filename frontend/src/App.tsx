@@ -26,6 +26,7 @@ import {
 } from "lucide-react"
 import { bridge, type AppConfig, type TimerStatus, type TimerFinishType, type TimerType } from "@/lib/bridge"
 import WindowDrag from "@/lib/window-drag"
+import { useTheme } from "@/components/theme-provider"
 
 const DEFAULT_RINGTONE = "未设置"
 
@@ -62,6 +63,39 @@ function NotificationOverlay({
   activityMinutes: number
   setActivityMinutes: (v: number) => void
 }) {
+  // 快捷键：Space 开始活动 / End 停止 / 1/2/3 稍后提醒
+  useEffect(() => {
+    if (!visible) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.repeat) return
+      // 不拦截输入框内的按键
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement
+      )
+        return
+
+      if (e.code === "Space") {
+        e.preventDefault()
+        onStartActivity()
+      } else if (e.code === "End") {
+        e.preventDefault()
+        onStopAndReset()
+      } else if (e.code === "Digit1" || e.code === "Numpad1") {
+        e.preventDefault()
+        onSnooze(3)
+      } else if (e.code === "Digit2" || e.code === "Numpad2") {
+        e.preventDefault()
+        onSnooze(5)
+      } else if (e.code === "Digit3" || e.code === "Numpad3") {
+        e.preventDefault()
+        onSnooze(10)
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [visible, onStartActivity, onStopAndReset, onSnooze])
+
   if (!visible) return null
 
   return (
@@ -121,6 +155,23 @@ function ActivityDoneOverlay({
   onStopOnly: () => void
   onStopAndStartNext: () => void
 }) {
+  // 快捷键：Space 开始下一次 / End 停止
+  useEffect(() => {
+    if (!visible) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.repeat) return
+      if (e.code === "Space") {
+        e.preventDefault()
+        onStopAndStartNext()
+      } else if (e.code === "End") {
+        e.preventDefault()
+        onStopOnly()
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [visible, onStopAndStartNext, onStopOnly])
+
   if (!visible) return null
 
   return (
@@ -158,6 +209,8 @@ function SettingsPage({
   volume,
   autoHide,
   alwaysOnTop,
+  darkMode,
+  autoStart,
   appVersion,
   onSelectRingtone,
   onTestRingtone,
@@ -169,6 +222,8 @@ function SettingsPage({
   onVolumeChange,
   onAutoHideChange,
   onAlwaysOnTopChange,
+  onDarkModeChange,
+  onAutoStartChange,
   onBack,
 }: {
   ringtonePath: string
@@ -179,6 +234,8 @@ function SettingsPage({
   volume: number
   autoHide: boolean
   alwaysOnTop: boolean
+  darkMode: boolean
+  autoStart: boolean
   appVersion: string
   onSelectRingtone: () => void
   onTestRingtone: () => void
@@ -190,6 +247,8 @@ function SettingsPage({
   onVolumeChange: (value: number) => void
   onAutoHideChange: (enabled: boolean) => void
   onAlwaysOnTopChange: (enabled: boolean) => void
+  onDarkModeChange: (enabled: boolean) => void
+  onAutoStartChange: (enabled: boolean) => void
   onBack: () => void
 }) {
   // 音量在 UI 上使用 0-100 的百分比，配置中存储 0-1000
@@ -324,6 +383,14 @@ function SettingsPage({
               <span className="text-sm">窗口总在最前</span>
               <Switch checked={alwaysOnTop} onCheckedChange={onAlwaysOnTopChange} />
             </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm">深色模式</span>
+              <Switch checked={darkMode} onCheckedChange={onDarkModeChange} />
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm">开机自启</span>
+              <Switch checked={autoStart} onCheckedChange={onAutoStartChange} />
+            </div>
           </CardContent>
         </Card>
 
@@ -338,6 +405,7 @@ function SettingsPage({
 }
 
 export function App() {
+  const { setTheme } = useTheme()
   const [status, setStatus] = useState<TimerStatus>("idle")
   const [remainingSeconds, setRemainingSeconds] = useState(0)
   const [totalSeconds, setTotalSeconds] = useState(2400)
@@ -355,6 +423,8 @@ export function App() {
   const [volume, setVolume] = useState(1000)
   const [autoHide, setAutoHide] = useState(false)
   const [alwaysOnTop, setAlwaysOnTop] = useState(true)
+  const [darkMode, setDarkMode] = useState(false)
+  const [autoStart, setAutoStart] = useState(false)
   const [appVersion, setAppVersion] = useState("")
 
   // 跟踪最新的活动时长，供 __timerFinished 回调读取，避免闭包陈旧
@@ -402,6 +472,14 @@ export function App() {
       }
       setAutoHide(!!config.autoHide)
       setAlwaysOnTop(config.alwaysOnTop !== false)
+      setDarkMode(!!config.darkMode)
+      setAutoStart(!!config.autoStart)
+      // 同步深色模式到主题
+      if (config.darkMode) {
+        setTheme("dark")
+      } else {
+        setTheme("light")
+      }
     }
 
     window.__activityStarted = (_minutes: number) => {
@@ -432,6 +510,14 @@ export function App() {
         }
         setAutoHide(!!config.autoHide)
         setAlwaysOnTop(config.alwaysOnTop !== false)
+        setDarkMode(!!config.darkMode)
+        setAutoStart(!!config.autoStart)
+        // 同步深色模式到主题
+        if (config.darkMode) {
+          setTheme("dark")
+        } else {
+          setTheme("light")
+        }
       }
     })
 
@@ -596,6 +682,22 @@ export function App() {
     await bridge.saveConfig()
   }, [])
 
+  // 修改深色模式
+  const handleDarkModeChange = useCallback(async (enabled: boolean) => {
+    setDarkMode(enabled)
+    // 同步主题
+    setTheme(enabled ? "dark" : "light")
+    await bridge.setDarkMode(enabled)
+    await bridge.saveConfig()
+  }, [setTheme])
+
+  // 修改开机自启
+  const handleAutoStartChange = useCallback(async (enabled: boolean) => {
+    setAutoStart(enabled)
+    await bridge.setAutoStart(enabled)
+    await bridge.saveConfig()
+  }, [])
+
   // 开始活动倒计时（使用自定义分钟数）
   const handleStartActivity = useCallback(async () => {
     await bridge.startActivityTimerWithMinutes(tempActivityMinutes)
@@ -665,6 +767,8 @@ export function App() {
                 volume={volume}
                 autoHide={autoHide}
                 alwaysOnTop={alwaysOnTop}
+                darkMode={darkMode}
+                autoStart={autoStart}
                 appVersion={appVersion}
                 onSelectRingtone={handleSelectRingtone}
                 onTestRingtone={handleTestRingtone}
@@ -676,6 +780,8 @@ export function App() {
                 onVolumeChange={handleVolumeChange}
                 onAutoHideChange={handleAutoHideChange}
                 onAlwaysOnTopChange={handleAlwaysOnTopChange}
+                onDarkModeChange={handleDarkModeChange}
+                onAutoStartChange={handleAutoStartChange}
                 onBack={() => setShowSettings(false)}
               />
             ) : (

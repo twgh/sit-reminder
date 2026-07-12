@@ -8,6 +8,8 @@ export interface AppConfig {
   volume: number
   autoHide: boolean
   alwaysOnTop: boolean
+  darkMode: boolean
+  autoStart: boolean
 }
 
 export type TimerStatus = "idle" | "running" | "paused" | "finished"
@@ -43,6 +45,8 @@ declare global {
       setVolume: (volume: number) => Promise<void>
       setAutoHide: (enabled: boolean) => Promise<void>
       setAlwaysOnTop: (enabled: boolean) => Promise<void>
+      setDarkMode: (enabled: boolean) => Promise<void>
+      setAutoStart: (enabled: boolean) => Promise<void>
       // 系统
       getVersion: () => Promise<string>
     }
@@ -100,5 +104,7 @@ export const bridge = {
   setVolume: (volume: number) => callApi<void>("setVolume", volume),
   setAutoHide: (enabled: boolean) => callApi<void>("setAutoHide", enabled),
   setAlwaysOnTop: (enabled: boolean) => callApi<void>("setAlwaysOnTop", enabled),
+  setDarkMode: (enabled: boolean) => callApi<void>("setDarkMode", enabled),
+  setAutoStart: (enabled: boolean) => callApi<void>("setAutoStart", enabled),
   getVersion: () => callApi<string>("getVersion"),
 }

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/exec"
 	"sync"
 	"syscall"
 	"time"
@@ -317,6 +318,17 @@ func (m *MainWindow) bindFunctions() {
 		m.mu.Unlock()
 		m.applyAlwaysOnTop(enabled)
 	})
+	m.wv.Bind("api.setDarkMode", func(enabled bool) {
+		m.mu.Lock()
+		m.config.DarkMode = enabled
+		m.mu.Unlock()
+	})
+	m.wv.Bind("api.setAutoStart", func(enabled bool) {
+		m.mu.Lock()
+		m.config.AutoStart = enabled
+		m.mu.Unlock()
+		m.setAutoStart(enabled)
+	})
 
 	// ===== 系统信息 =====
 	m.wv.Bind("api.getVersion", func() string {
@@ -357,4 +369,33 @@ func (m *MainWindow) maybeHideAfterStart() {
 // applyAlwaysOnTop 设置窗口是否置顶
 func (m *MainWindow) applyAlwaysOnTop(enabled bool) {
 	m.w.SetTop(enabled)
+}
+
+// setAutoStart 设置/取消开机自启（通过注册表 HKCU\...\Run）
+func (m *MainWindow) setAutoStart(enabled bool) {
+	exePath, err := os.Executable()
+	if err != nil {
+		log.Println("获取可执行文件路径失败:", err)
+		return
+	}
+
+	if enabled {
+		cmd := exec.Command("reg", "add",
+			`HKCU\Software\Microsoft\Windows\CurrentVersion\Run`,
+			"/v", g.AppName,
+			"/t", "REG_SZ",
+			"/d", exePath,
+			"/f")
+		if err := cmd.Run(); err != nil {
+			log.Println("设置开机自启失败:", err)
+		}
+	} else {
+		cmd := exec.Command("reg", "delete",
+			`HKCU\Software\Microsoft\Windows\CurrentVersion\Run`,
+			"/v", g.AppName,
+			"/f")
+		if err := cmd.Run(); err != nil {
+			log.Println("删除开机自启失败:", err)
+		}
+	}
 }
