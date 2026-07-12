@@ -399,7 +399,7 @@ function SettingsPage({
                 <SelectTrigger className="w-28" size="sm">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent align="end">
+                <SelectContent align="end" className="w-28 min-w-28">
                   <SelectItem value="light">浅色</SelectItem>
                   <SelectItem value="dark">深色</SelectItem>
                   <SelectItem value="system">跟随系统</SelectItem>
