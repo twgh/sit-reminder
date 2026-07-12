@@ -627,7 +627,7 @@ export function App() {
     [intervalMinutes]
   )
 
-  // 主界面快捷键：Space 启动/继续 / P 暂停 / C 停止 / W/S 分钟±1
+  // 主界面快捷键：Space 启动/暂停/继续 / C 停止 / W/S 分钟±1
   useEffect(() => {
     // 设置页或通知浮层可见时不响应主界面快捷键
     if (showSettings || notificationVisible) return
@@ -642,16 +642,14 @@ export function App() {
         return
 
       if (e.code === "Space") {
+        e.preventDefault()
         if (status === "idle") {
-          e.preventDefault()
           handleStart()
+        } else if (status === "running") {
+          handlePause()
         } else if (status === "paused") {
-          e.preventDefault()
           handleResume()
         }
-      } else if (e.code === "KeyP" && status === "running") {
-        e.preventDefault()
-        handlePause()
       } else if (e.code === "KeyC" && (status === "running" || status === "paused")) {
         e.preventDefault()
         handleStop()
@@ -678,9 +676,10 @@ export function App() {
 
   // 测试久坐提醒铃声
   const handleTestRingtone = useCallback(async () => {
+    if (!ringtonePath || ringtonePath === DEFAULT_RINGTONE) return
     setIsTestPlaying(true)
     await bridge.testRingtone()
-  }, [])
+  }, [ringtonePath])
 
   // 停止久坐提醒铃声测试
   const handleStopRingtone = useCallback(async () => {
@@ -699,9 +698,10 @@ export function App() {
 
   // 测试活动铃声
   const handleTestActivityRingtone = useCallback(async () => {
+    if (!activityRingtonePath || activityRingtonePath === DEFAULT_RINGTONE) return
     setIsActivityTestPlaying(true)
     await bridge.testActivityRingtone()
-  }, [])
+  }, [activityRingtonePath])
 
   // 停止活动铃声测试
   const handleStopActivityRingtone = useCallback(async () => {
@@ -939,7 +939,7 @@ export function App() {
                         <>
                           <Tooltip>
                             <TooltipTrigger render={<Button variant="secondary" className="flex-1" onClick={handlePause}><PauseIcon data-icon="inline-start" />暂停</Button>} />
-                            <TooltipContent>快捷键 <kbd data-slot="kbd">P</kbd></TooltipContent>
+                            <TooltipContent>快捷键 <kbd data-slot="kbd">Space</kbd></TooltipContent>
                           </Tooltip>
                           <Tooltip>
                             <TooltipTrigger render={<Button variant="destructive" className="flex-1" onClick={handleStop}><SquareIcon data-icon="inline-start" />停止</Button>} />
