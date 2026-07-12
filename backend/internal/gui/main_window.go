@@ -98,9 +98,12 @@ func NewMainWindow(edg *edge.Edge) *MainWindow {
 	hMod := wapi.GetModuleHandleW("")
 	hIconApp := wapi.LoadImageW(hMod, common.StrPtr("APPICON"), wapi.IMAGE_ICON, 0, 0, wapi.LR_SHARED|wapi.LR_DEFAULTSIZE)
 
-	// 设置任务栏预览窗口左上角的图标, 使用24x24尺寸
+	// 设置任务栏预览窗口左上角的图标, 使用24x24尺寸, 也会影响任务管理器里的图标
 	hIcon24 := wapi.LoadImageW(hMod, common.StrPtr("APPICON"), wapi.IMAGE_ICON, 24, 24, wapi.LR_SHARED)
 	m.w.SetSmallIcon(hIcon24)
+
+	// 设置大图标, 会影响任务栏图标, Alt+Tab 窗口图标
+	m.w.SetBigIcon(hIconApp)
 
 	// 创建托盘图标
 	m.tray = m.w.CreateTrayIcon(hIconApp, "久坐提醒助手")
