@@ -394,18 +394,10 @@ function SettingsPage({
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
             <div className="flex items-center justify-between">
-              <span className="text-sm">开始提醒倒计时后隐藏界面到托盘</span>
-              <Switch checked={autoHide} onCheckedChange={onAutoHideChange} />
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm">窗口总在最前</span>
-              <Switch checked={alwaysOnTop} onCheckedChange={onAlwaysOnTopChange} />
-            </div>
-            <div className="flex items-center justify-between">
               <span className="text-sm">主题模式</span>
               <Select value={themeMode} onValueChange={(v) => v && onThemeModeChange(v)}>
                 <SelectTrigger className="w-28" size="sm">
-                  <SelectValue render={(value) => { const labels: Record<string, string> = { light: "浅色", dark: "深色", system: "跟随系统" }; return <>{labels[String(value)] || String(value)}</>; }} />
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent align="end">
                   <SelectItem value="light">浅色</SelectItem>
@@ -417,6 +409,14 @@ function SettingsPage({
             <div className="flex items-center justify-between">
               <span className="text-sm">开机自启</span>
               <Switch checked={autoStart} onCheckedChange={onAutoStartChange} />
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm">窗口总在最前</span>
+              <Switch checked={alwaysOnTop} onCheckedChange={onAlwaysOnTopChange} />
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm">开始提醒倒计时后隐藏界面到托盘</span>
+              <Switch checked={autoHide} onCheckedChange={onAutoHideChange} />
             </div>
           </CardContent>
         </Card>
