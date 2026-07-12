@@ -22,4 +22,8 @@ if not exist "node_modules" (
 echo 开始编译前端 ...
 pnpm build && cd /d "..\scripts" && call build_backend.bat
 
-pause
+if %errorlevel% == 0 (
+) else (
+    echo 编译失败!
+    pause
+)

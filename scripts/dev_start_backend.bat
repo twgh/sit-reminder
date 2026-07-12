@@ -14,8 +14,7 @@ if %errorlevel%==0 (
     echo.
     cd /d "..\bin"
     %filename%
+    exit
 ) else (
     echo 编译失败!
 )
-
-exit
