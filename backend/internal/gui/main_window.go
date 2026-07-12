@@ -49,27 +49,29 @@ type MainWindow struct {
 	config *config.AppConfig
 	tray   *window.TrayIcon // 托盘图标
 
-	mu        sync.Mutex
-	timer     *time.Ticker
-	done      chan struct{}
-	pauseCh   chan struct{}
-	resumeCh  chan struct{}
-	state     TimerState
-	timerType TimerType
-	remaining int
-	total     int
+	mu          sync.Mutex
+	timer       *time.Ticker
+	done        chan struct{}
+	pauseCh     chan struct{}
+	resumeCh    chan struct{}
+	state       TimerState
+	timerType   TimerType
+	remaining   int
+	total       int
+	hideOnStart bool // -hide 命令行参数: 启动后不显示窗口
 }
 
-func NewMainWindow(edg *edge.Edge) *MainWindow {
+func NewMainWindow(edg *edge.Edge, hideOnStart bool) *MainWindow {
 	m := &MainWindow{
-		edg:      edg,
-		ap:       wutil.NewAudioPlayer(),
-		ap2:      wutil.NewAudioPlayer(),
-		config:   config.LoadConfig(),
-		done:     make(chan struct{}),
-		pauseCh:  make(chan struct{}),
-		resumeCh: make(chan struct{}),
-		state:    StateIdle,
+		edg:         edg,
+		ap:          wutil.NewAudioPlayer(),
+		ap2:         wutil.NewAudioPlayer(),
+		config:      config.LoadConfig(),
+		hideOnStart: hideOnStart,
+		done:        make(chan struct{}),
+		pauseCh:     make(chan struct{}),
+		resumeCh:    make(chan struct{}),
+		state:       StateIdle,
 	}
 
 	var err error
@@ -195,7 +197,11 @@ func (m *MainWindow) regWebViewEvents() {
 		if uri == m.getHost()+"/index.html" {
 			if firstLoad {
 				firstLoad = false
-				m.w.Show()
+				if m.hideOnStart {
+					m.wv.Show(false)
+				} else {
+					m.w.Show()
+				}
 			}
 
 			m.pushConfig() // 推送配置到 WebView
@@ -393,7 +399,7 @@ func (m *MainWindow) setAutoStart(enabled bool) error {
 			`HKCU\Software\Microsoft\Windows\CurrentVersion\Run`,
 			"/v", g.AppName,
 			"/t", "REG_SZ",
-			"/d", exePath,
+			"/d", exePath+" -hide",
 			"/f")
 		if err := cmd.Run(); err != nil {
 			return fmt.Errorf("写入注册表失败: %w", err)

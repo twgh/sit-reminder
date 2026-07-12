@@ -3,7 +3,7 @@ package gui
 import "github.com/twgh/xcgui/app"
 
 // Run 程序入口
-func Run() {
+func Run(hide bool) {
 	checkWebView2()
 	edg := createEdge()
 
@@ -11,7 +11,7 @@ func Run() {
 	a := app.New(true)
 	a.EnableAutoDPI(true).EnableDPI(true)
 
-	NewMainWindow(edg)
+	NewMainWindow(edg, hide)
 
 	a.Run()
 	a.Exit()

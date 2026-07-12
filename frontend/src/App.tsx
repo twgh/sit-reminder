@@ -65,7 +65,7 @@ function NotificationOverlay({
   activityMinutes: number
   setActivityMinutes: (v: number) => void
 }) {
-  // 快捷键：Space 开始活动 / End 停止 / 1/2/3 稍后提醒
+  // 快捷键：Space 开始活动 / C 停止 / 1/2/3 稍后提醒 / W/S 调整活动时间
   useEffect(() => {
     if (!visible) return
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -80,7 +80,7 @@ function NotificationOverlay({
       if (e.code === "Space") {
         e.preventDefault()
         onStartActivity()
-      } else if (e.code === "KeyS") {
+      } else if (e.code === "KeyC") {
         e.preventDefault()
         onStopAndReset()
       } else if (e.code === "Digit1" || e.code === "Numpad1") {
@@ -92,11 +92,17 @@ function NotificationOverlay({
       } else if (e.code === "Digit3" || e.code === "Numpad3") {
         e.preventDefault()
         onSnooze(10)
+      } else if (e.code === "KeyW") {
+        e.preventDefault()
+        setActivityMinutes(Math.min(99, activityMinutes + 1))
+      } else if (e.code === "KeyS") {
+        e.preventDefault()
+        setActivityMinutes(Math.max(1, activityMinutes - 1))
       }
     }
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [visible, onStartActivity, onStopAndReset, onSnooze])
+  }, [visible, onStartActivity, onStopAndReset, onSnooze, setActivityMinutes, activityMinutes])
 
   if (!visible) return null
 
@@ -130,7 +136,7 @@ function NotificationOverlay({
           </div>
           <Tooltip>
             <TooltipTrigger render={<Button variant="secondary" size="lg" className="w-full" onClick={onStopAndReset}><SquareIcon data-icon="inline-start" />停止并返回</Button>} />
-            <TooltipContent>快捷键 <kbd data-slot="kbd">S</kbd></TooltipContent>
+            <TooltipContent>快捷键 <kbd data-slot="kbd">C</kbd></TooltipContent>
           </Tooltip>
           <Separator />
           <div className="flex flex-col gap-2">
@@ -166,7 +172,7 @@ function ActivityDoneOverlay({
   onStopOnly: () => void
   onStopAndStartNext: () => void
 }) {
-  // 快捷键：Space 开始下一次 / S 停止
+  // 快捷键：Space 开始下一次 / C 停止
   useEffect(() => {
     if (!visible) return
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -174,7 +180,7 @@ function ActivityDoneOverlay({
       if (e.code === "Space") {
         e.preventDefault()
         onStopAndStartNext()
-      } else if (e.code === "KeyS") {
+      } else if (e.code === "KeyC") {
         e.preventDefault()
         onStopOnly()
       }
@@ -202,7 +208,7 @@ function ActivityDoneOverlay({
           </Tooltip>
           <Tooltip>
             <TooltipTrigger render={<Button variant="secondary" size="lg" className="w-full" onClick={onStopOnly}><SquareIcon data-icon="inline-start" />停止</Button>} />
-            <TooltipContent>快捷键 <kbd data-slot="kbd">S</kbd></TooltipContent>
+            <TooltipContent>快捷键 <kbd data-slot="kbd">C</kbd></TooltipContent>
           </Tooltip>
         </CardContent>
       </Card>
@@ -600,7 +606,28 @@ export function App() {
     setFinishType("sedentary")
   }, [intervalMinutes])
 
-  // 主界面快捷键：Space 启动/继续 / P 暂停 / S 停止
+  // 修改间隔时间
+  const handleIntervalChange = useCallback(async (value: number) => {
+    const clamped = Math.max(1, Math.min(999, value))
+    setIntervalMinutes(clamped)
+    setTotalSeconds(clamped * 60)
+    await bridge.setInterval(clamped)
+    await bridge.saveConfig()
+  }, [])
+
+  // 步进
+  const stepInterval = useCallback(
+    async (delta: number) => {
+      const newVal = Math.max(1, Math.min(999, intervalMinutes + delta))
+      setIntervalMinutes(newVal)
+      setTotalSeconds(newVal * 60)
+      await bridge.setInterval(newVal)
+      await bridge.saveConfig()
+    },
+    [intervalMinutes]
+  )
+
+  // 主界面快捷键：Space 启动/继续 / P 暂停 / C 停止 / W/S 分钟±1
   useEffect(() => {
     // 设置页或通知浮层可见时不响应主界面快捷键
     if (showSettings || notificationVisible) return
@@ -625,35 +652,20 @@ export function App() {
       } else if (e.code === "KeyP" && status === "running") {
         e.preventDefault()
         handlePause()
-      } else if (e.code === "KeyS" && (status === "running" || status === "paused")) {
+      } else if (e.code === "KeyC" && (status === "running" || status === "paused")) {
         e.preventDefault()
         handleStop()
+      } else if (e.code === "KeyW" && status === "idle") {
+        e.preventDefault()
+        stepInterval(1)
+      } else if (e.code === "KeyS" && status === "idle") {
+        e.preventDefault()
+        stepInterval(-1)
       }
     }
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [showSettings, notificationVisible, status, handleStart, handleResume, handlePause, handleStop])
-
-  // 修改间隔时间
-  const handleIntervalChange = useCallback(async (value: number) => {
-    const clamped = Math.max(1, Math.min(999, value))
-    setIntervalMinutes(clamped)
-    setTotalSeconds(clamped * 60)
-    await bridge.setInterval(clamped)
-    await bridge.saveConfig()
-  }, [])
-
-  // 步进
-  const stepInterval = useCallback(
-    async (delta: number) => {
-      const newVal = Math.max(1, Math.min(999, intervalMinutes + delta))
-      setIntervalMinutes(newVal)
-      setTotalSeconds(newVal * 60)
-      await bridge.setInterval(newVal)
-      await bridge.saveConfig()
-    },
-    [intervalMinutes]
-  )
+  }, [showSettings, notificationVisible, status, handleStart, handleResume, handlePause, handleStop, stepInterval])
 
   // 选择久坐提醒铃声
   const handleSelectRingtone = useCallback(async () => {
@@ -931,7 +943,7 @@ export function App() {
                           </Tooltip>
                           <Tooltip>
                             <TooltipTrigger render={<Button variant="destructive" className="flex-1" onClick={handleStop}><SquareIcon data-icon="inline-start" />停止</Button>} />
-                            <TooltipContent>快捷键 <kbd data-slot="kbd">S</kbd></TooltipContent>
+                            <TooltipContent>快捷键 <kbd data-slot="kbd">C</kbd></TooltipContent>
                           </Tooltip>
                         </>
                       )}
@@ -943,7 +955,7 @@ export function App() {
                           </Tooltip>
                           <Tooltip>
                             <TooltipTrigger render={<Button variant="destructive" className="flex-1" onClick={handleStop}><SquareIcon data-icon="inline-start" />停止</Button>} />
-                            <TooltipContent>快捷键 <kbd data-slot="kbd">S</kbd></TooltipContent>
+                            <TooltipContent>快捷键 <kbd data-slot="kbd">C</kbd></TooltipContent>
                           </Tooltip>
                         </>
                       )}
