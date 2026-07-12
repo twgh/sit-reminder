@@ -301,7 +301,6 @@ func (m *MainWindow) bindFunctions() {
 		if err := config.SaveConfig(m.config); err != nil {
 			log.Println("保存配置失败:", err)
 		}
-		fmt.Println("配置已保存到", config.ConfigPath())
 	})
 	m.wv.Bind("api.setActivityMinutes", func(minutes float64) {
 		m.mu.Lock()
