@@ -15,6 +15,7 @@
 │   │   ├── App.tsx              # 主界面
 │   │   ├── lib/bridge.ts        # Go <-> JS 通信桥接
 │   │   └── components/ui/       # shadcn 组件
+│   ├── README.md                # 前端开发说明
 │   └── package.json
 ├── backend/           # Go 后端
 │   ├── main.go                  # 程序入口
