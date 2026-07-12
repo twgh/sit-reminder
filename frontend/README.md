@@ -1,20 +1,20 @@
 # React + TypeScript + Vite + shadcn/ui
 
-This is a template for a new Vite project with React, TypeScript, and shadcn/ui.
+这是一个基于 React、TypeScript 和 shadcn/ui 的 Vite 项目。
 
-## Adding components
+## 添加组件
 
-To add components to your app, run the following command:
+要在应用中添加组件，请运行以下命令：
 
 ```bash
 npx shadcn@latest add button
 ```
 
-This will place the ui components in the `src/components` directory.
+这会将 UI 组件放置在 src/components 目录下。
 
-## Using components
+## 使用组件
 
-To use the components in your app, import them as follows:
+要在应用中使用这些组件，可以按如下方式进行导入：
 
 ```tsx
 import { Button } from "@/components/ui/button"
