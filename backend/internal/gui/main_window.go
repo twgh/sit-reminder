@@ -91,14 +91,16 @@ func NewMainWindow(edg *edge.Edge) *MainWindow {
 
 	// 禁止拖拽边框改变窗口大小
 	m.w.EnableDragBorder(false)
-
 	// 设置为透明窗口
 	m.w.SetTransparentType(xcc.Window_Transparent_Shaped)
 
 	// 从资源中加载程序图标
-	hIconApp := wapi.LoadImageW(wapi.GetModuleHandleW(""), common.StrPtr("APPICON"), wapi.IMAGE_ICON, 0, 0, wapi.LR_SHARED|wapi.LR_DEFAULTSIZE)
-	// 设置任务栏预览窗口左上角的图标
-	m.w.SetSmallIcon(hIconApp)
+	hMod := wapi.GetModuleHandleW("")
+	hIconApp := wapi.LoadImageW(hMod, common.StrPtr("APPICON"), wapi.IMAGE_ICON, 0, 0, wapi.LR_SHARED|wapi.LR_DEFAULTSIZE)
+
+	// 设置任务栏预览窗口左上角的图标, 使用24x24尺寸
+	hIcon24 := wapi.LoadImageW(hMod, common.StrPtr("APPICON"), wapi.IMAGE_ICON, 24, 24, wapi.LR_SHARED)
+	m.w.SetSmallIcon(hIcon24)
 
 	// 创建托盘图标
 	m.tray = m.w.CreateTrayIcon(hIconApp, "久坐提醒助手")
