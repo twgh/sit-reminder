@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/twgh/xcgui/xc"
-	"github.com/twgh/xcgui/xcc"
 )
 
 // startTimer 启动普通计时（暂停后恢复也用此方法）
@@ -253,13 +252,4 @@ func timerTypeStr(t TimerType) string {
 // evalTimerTypeChanged 通知前端当前倒计时类型已改变
 func (m *MainWindow) evalTimerTypeChanged(t TimerType) {
 	m.wv.Eval(fmt.Sprintf("window.__timerTypeChanged && __timerTypeChanged('%s')", timerTypeStr(t)))
-}
-
-// activateWindow 激活窗口到前台, 如果 WebView 是在挂起状态, 会自动恢复
-func (m *MainWindow) activateWindow() {
-	m.wv.Show() // 显示 WebView
-	m.w.ShowWindow(xcc.SW_SHOWNORMAL)
-	m.w.SetTop().SetTop(false)
-	// 恢复关闭按钮的 hover 样式: 移除 body 上的禁用 class
-	m.wv.Eval(`document.body.classList.remove('close-hover-disabled')`)
 }
