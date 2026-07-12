@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { Progress, ProgressValue } from "@/components/ui/progress"
 import { Separator } from "@/components/ui/separator"
 import { Slider } from "@/components/ui/slider"
+import { Switch } from "@/components/ui/switch"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import {
   PlayIcon,
@@ -155,6 +156,8 @@ function SettingsPage({
   isActivityTestPlaying,
   activityMinutes,
   volume,
+  autoHide,
+  appVersion,
   onSelectRingtone,
   onTestRingtone,
   onStopRingtone,
@@ -163,6 +166,7 @@ function SettingsPage({
   onStopActivityRingtone,
   onActivityMinutesChange,
   onVolumeChange,
+  onAutoHideChange,
   onBack,
 }: {
   ringtonePath: string
@@ -171,6 +175,8 @@ function SettingsPage({
   isActivityTestPlaying: boolean
   activityMinutes: number
   volume: number
+  autoHide: boolean
+  appVersion: string
   onSelectRingtone: () => void
   onTestRingtone: () => void
   onStopRingtone: () => void
@@ -179,6 +185,7 @@ function SettingsPage({
   onStopActivityRingtone: () => void
   onActivityMinutesChange: (value: number) => void
   onVolumeChange: (value: number) => void
+  onAutoHideChange: (enabled: boolean) => void
   onBack: () => void
 }) {
   // 音量在 UI 上使用 0-100 的百分比，配置中存储 0-1000
@@ -323,6 +330,24 @@ function SettingsPage({
             </div>
           </CardContent>
         </Card>
+
+        {/* 启动后隐藏界面 */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">其它设置</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <span className="text-sm">开始提醒倒计时后隐藏界面到托盘</span>
+              <Switch checked={autoHide} onCheckedChange={onAutoHideChange} />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* 版本号 */}
+        <div className="pb-4 text-center text-xs text-muted-foreground">
+          v{appVersion || "—"}
+        </div>
       </div>
       </div>
     </div>
@@ -345,6 +370,8 @@ export function App() {
   const [activityMinutes, setActivityMinutes] = useState(5)
   const [tempActivityMinutes, setTempActivityMinutes] = useState(5)
   const [volume, setVolume] = useState(1000)
+  const [autoHide, setAutoHide] = useState(false)
+  const [appVersion, setAppVersion] = useState("")
 
   // 跟踪最新的活动时长，供 __timerFinished 回调读取，避免闭包陈旧
   const activityMinutesRef = useRef(activityMinutes)
@@ -389,6 +416,7 @@ export function App() {
       if (typeof config.volume === "number") {
         setVolume(config.volume)
       }
+      setAutoHide(!!config.autoHide)
     }
 
     window.__activityStarted = (_minutes: number) => {
@@ -417,6 +445,13 @@ export function App() {
         if (typeof config.volume === "number") {
           setVolume(config.volume)
         }
+        setAutoHide(!!config.autoHide)
+      }
+    })
+
+    bridge.getVersion().then((version) => {
+      if (version) {
+        setAppVersion(version)
       }
     })
 
@@ -561,6 +596,13 @@ export function App() {
     await bridge.saveConfig()
   }, [])
 
+  // 修改自动隐藏
+  const handleAutoHideChange = useCallback(async (enabled: boolean) => {
+    setAutoHide(enabled)
+    await bridge.setAutoHide(enabled)
+    await bridge.saveConfig()
+  }, [])
+
   // 开始活动倒计时（使用自定义分钟数）
   const handleStartActivity = useCallback(async () => {
     await bridge.startActivityTimerWithMinutes(tempActivityMinutes)
@@ -628,6 +670,8 @@ export function App() {
                 isActivityTestPlaying={isActivityTestPlaying}
                 activityMinutes={activityMinutes}
                 volume={volume}
+                autoHide={autoHide}
+                appVersion={appVersion}
                 onSelectRingtone={handleSelectRingtone}
                 onTestRingtone={handleTestRingtone}
                 onStopRingtone={handleStopRingtone}
@@ -636,6 +680,7 @@ export function App() {
                 onStopActivityRingtone={handleStopActivityRingtone}
                 onActivityMinutesChange={handleActivityMinutesChange}
                 onVolumeChange={handleVolumeChange}
+                onAutoHideChange={handleAutoHideChange}
                 onBack={() => setShowSettings(false)}
               />
             ) : (

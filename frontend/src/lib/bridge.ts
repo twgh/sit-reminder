@@ -6,6 +6,7 @@ export interface AppConfig {
   activityRingtonePath: string
   activityMinutes: number
   volume: number
+  autoHide: boolean
 }
 
 export type TimerStatus = "idle" | "running" | "paused" | "finished"
@@ -39,6 +40,9 @@ declare global {
       saveConfig: () => Promise<void>
       setActivityMinutes: (minutes: number) => Promise<void>
       setVolume: (volume: number) => Promise<void>
+      setAutoHide: (enabled: boolean) => Promise<void>
+      // 系统
+      getVersion: () => Promise<string>
     }
     __timerTick: (remainingSeconds: number, totalSeconds: number) => void
     __timerFinished: (type: TimerFinishType) => void
@@ -92,4 +96,6 @@ export const bridge = {
   saveConfig: () => callApi<void>("saveConfig"),
   setActivityMinutes: (minutes: number) => callApi<void>("setActivityMinutes", minutes),
   setVolume: (volume: number) => callApi<void>("setVolume", volume),
+  setAutoHide: (enabled: boolean) => callApi<void>("setAutoHide", enabled),
+  getVersion: () => callApi<string>("getVersion"),
 }

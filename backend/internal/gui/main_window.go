@@ -18,6 +18,7 @@ import (
 	"github.com/twgh/xcgui/wapi/wutil"
 	"github.com/twgh/xcgui/widget"
 	"github.com/twgh/xcgui/window"
+	"github.com/twgh/xcgui/xc"
 	"github.com/twgh/xcgui/xcc"
 )
 
@@ -132,11 +133,10 @@ func NewMainWindow(edg *edge.Edge) *MainWindow {
 func (m *MainWindow) regXcEvents() {
 	// 窗口关闭事件
 	m.w.AddEvent_Close(func(hWindow int, pbHandled *bool) int {
-		*pbHandled = true // 拦截
+		*pbHandled = true // 拦截窗口关闭
 		// 给 body 加 class 禁用关闭按钮的 hover 样式（CSS 已在 index.css 预定义）
 		m.wv.EvalAsync(`document.body.classList.add('close-hover-disabled')`, func(errorCode syscall.Errno, result string) uintptr {
-			m.wv.Show(false) // 隐藏 WebView
-			m.w.Show(false)  // 隐藏窗口
+			m.hideWindow() // 隐藏窗口和 WebView
 			return 0
 		})
 		return 0
@@ -224,6 +224,7 @@ func (m *MainWindow) bindFunctions() {
 	// ===== 定时器控制 =====
 	m.wv.Bind("api.startTimer", func() {
 		m.startTimer(TimerSedentary)
+		m.maybeHideAfterStart()
 	})
 	m.wv.Bind("api.stopTimer", func() {
 		m.stopTimer()
@@ -249,14 +250,17 @@ func (m *MainWindow) bindFunctions() {
 	// 稍后提醒（使用 float64）
 	m.wv.Bind("api.snooze", func(minutes float64) {
 		m.snooze(int(minutes))
+		m.maybeHideAfterStart()
 	})
 
 	// ===== 活动倒计时 =====
 	m.wv.Bind("api.startActivityTimer", func() {
 		m.startActivityTimer(m.config.ActivityMinutes)
+		m.maybeHideAfterStart()
 	})
 	m.wv.Bind("api.startActivityTimerWithMinutes", func(minutes float64) {
 		m.startActivityTimer(int(minutes))
+		m.maybeHideAfterStart()
 	})
 
 	// ===== 提醒铃声 =====
@@ -299,4 +303,42 @@ func (m *MainWindow) bindFunctions() {
 		m.config.Volume = int(volume)
 		m.mu.Unlock()
 	})
+	m.wv.Bind("api.setAutoHide", func(enabled bool) {
+		m.mu.Lock()
+		m.config.AutoHide = enabled
+		m.mu.Unlock()
+	})
+
+	// ===== 系统信息 =====
+	m.wv.Bind("api.getVersion", func() string {
+		return g.Version
+	})
+}
+
+// activateWindow 激活窗口到前台
+func (m *MainWindow) activateWindow() {
+	m.wv.Show() // 显示 WebView
+	m.w.ShowWindow(xcc.SW_SHOWNORMAL)
+	m.w.SetTop().SetTop(false)
+	// 恢复关闭按钮的 hover 样式: 移除 body 上的禁用 class
+	m.wv.Eval(`document.body.classList.remove('close-hover-disabled')`)
+}
+
+// hideWindow 隐藏窗口和 WebView
+//   - 加一个 WebView 的隐藏是因为这样能让它在后台自动变成效能模式
+func (m *MainWindow) hideWindow() {
+	m.wv.Show(false)
+	m.w.Show(false)
+}
+
+// maybeHideAfterStart 如果配置了自动隐藏，则在启动计时后隐藏窗口
+func (m *MainWindow) maybeHideAfterStart() {
+	m.mu.Lock()
+	autoHide := m.config.AutoHide
+	m.mu.Unlock()
+	if autoHide {
+		xc.UI(func() {
+			m.hideWindow()
+		})
+	}
 }
