@@ -9,11 +9,12 @@ import (
 )
 
 type AppConfig struct {
-	IntervalMinutes      int    `yaml:"interval_minutes" json:"intervalMinutes"`
-	RingtonePath         string `yaml:"ringtone_path" json:"ringtonePath"`
-	ActivityRingtonePath string `yaml:"activity_ringtone_path" json:"activityRingtonePath"`
-	ActivityMinutes      int    `yaml:"activity_minutes" json:"activityMinutes"`
-	Volume               int    `yaml:"volume" json:"volume"`
+	IntervalMinutes      int    `yaml:"interval_minutes" json:"intervalMinutes"`            // 久坐提醒间隔分钟数
+	RingtonePath         string `yaml:"ringtone_path" json:"ringtonePath"`                  // 久坐提醒铃声路径
+	ActivityRingtonePath string `yaml:"activity_ringtone_path" json:"activityRingtonePath"` // 活动结束铃声路径
+	ActivityMinutes      int    `yaml:"activity_minutes" json:"activityMinutes"`            // 活动倒计时分钟数
+	Volume               int    `yaml:"volume" json:"volume"`                               // 播放音量, 0-1000
+	AutoHide             bool   `yaml:"auto_hide" json:"autoHide"`                          // 启动提醒后隐藏窗口
 }
 
 func NewAppConfig() *AppConfig {
