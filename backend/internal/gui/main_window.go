@@ -14,6 +14,7 @@ import (
 	"github.com/twgh/sit-reminder/internal/g"
 	"github.com/twgh/xcgui/app"
 	"github.com/twgh/xcgui/common"
+	"github.com/twgh/xcgui/ease"
 	"github.com/twgh/xcgui/edge"
 	"github.com/twgh/xcgui/wapi"
 	"github.com/twgh/xcgui/wapi/wutil"
@@ -49,15 +50,20 @@ type MainWindow struct {
 	config *config.AppConfig
 	tray   *window.TrayIcon // 托盘图标
 
-	mu          sync.Mutex
-	timer       *time.Ticker
-	done        chan struct{}
-	pauseCh     chan struct{}
-	resumeCh    chan struct{}
-	state       TimerState
-	timerType   TimerType
-	remaining   int
-	total       int
+	mu        sync.Mutex
+	timer     *time.Ticker
+	done      chan struct{}
+	pauseCh   chan struct{}
+	resumeCh  chan struct{}
+	state     TimerState
+	timerType TimerType
+	remaining int
+	total     int
+
+	origWidth  int32    // 窗口原始宽度
+	origHeight int32    // 窗口原始高度
+	lastPos    xc.POINT // 窗口上一次的位置
+
 	hideOnStart bool // -hide 命令行参数: 启动后不显示窗口
 }
 
@@ -72,13 +78,16 @@ func NewMainWindow(edg *edge.Edge, hideOnStart bool) *MainWindow {
 		pauseCh:     make(chan struct{}),
 		resumeCh:    make(chan struct{}),
 		state:       StateIdle,
+		origWidth:   480,
+		origHeight:  536,
+		lastPos:     xc.POINT{X: 0, Y: 0},
 	}
 
 	var err error
 	m.w, m.wv, err = m.edg.NewWebViewWithWindow(
 		edge.WithXmlWindowTitle("久坐提醒助手"),
 		edge.WithXmlWindowClassName(g.AppName),
-		edge.WithXmlWindowSize(480, 536),
+		edge.WithXmlWindowSize(m.origWidth, m.origHeight),
 		edge.WithFillParent(true),
 		edge.WithDebug(g.IsDebug()),
 		edge.WithDefaultContextMenus(g.IsDebug()),
@@ -142,7 +151,7 @@ func (m *MainWindow) regXcEvents() {
 		*pbHandled = true // 拦截窗口关闭
 		// 给 body 加 class 禁用关闭按钮的 hover 样式（CSS 已在 index.css 预定义）
 		m.wv.EvalAsync(`document.body.classList.add('close-hover-disabled')`, func(errorCode syscall.Errno, result string) uintptr {
-			m.hideWindow() // 隐藏窗口和 WebView
+			m.animateToTray() // 缩放+位移动画后隐藏到托盘
 			return 0
 		})
 		return 0
@@ -354,6 +363,8 @@ func (m *MainWindow) bindFunctions() {
 // activateWindow 激活窗口到前台
 func (m *MainWindow) activateWindow() {
 	m.wv.Show() // 显示 WebView
+	// 恢复窗口原始大小和位置（动画过程中可能被缩放过）
+	m.w.SetRect(&xc.RECT{Left: m.lastPos.X, Top: m.lastPos.Y, Right: m.lastPos.X + m.origWidth, Bottom: m.lastPos.Y + m.origHeight})
 	m.w.ShowWindow(xcc.SW_SHOWNORMAL)
 	if !m.config.AlwaysOnTop {
 		m.w.SetTop().SetTop(false)
@@ -376,7 +387,7 @@ func (m *MainWindow) maybeHideAfterStart() {
 	m.mu.Unlock()
 	if autoHide {
 		xc.UI(func() {
-			m.hideWindow()
+			m.animateToTray()
 		})
 	}
 }
@@ -415,4 +426,58 @@ func (m *MainWindow) setAutoStart(enabled bool) error {
 		}
 	}
 	return nil
+}
+
+// animateToTray 缩放+位移动画：窗口等比例缩小并向屏幕右下角托盘区域平移，结束后隐藏窗口。
+func (m *MainWindow) animateToTray() {
+	// 获取窗口大小和位置
+	rc := m.w.GetRectEx()
+	m.lastPos.X = rc.Left
+	m.lastPos.Y = rc.Top
+	winW := rc.Right - rc.Left
+	winH := rc.Bottom - rc.Top
+	// 窗口中心坐标
+	winCX := (rc.Left + rc.Right) / 2
+	winCY := (rc.Top + rc.Bottom) / 2
+
+	dpi := m.w.GetDPI()
+	// 屏幕右下角（托盘位置）, 这个获取的屏幕大小是物理坐标, 比如2560*1600,
+	// 要转换成逻辑坐标, 比如在系统 150% 缩放下计算出来是 1707*1067
+	targetCX := wapi.MulDiv(wutil.GetScreenWidth(), 96, dpi)
+	targetCY := wapi.MulDiv(wutil.GetScreenHeight(), 96, dpi)
+	// 缩放到 80% 屏幕宽度位置
+	targetCX = int32(0.8 * float32(targetCX))
+
+	// 缓动动画，每步 10ms
+	const steps = 15
+	for t := 0; t < steps; t++ {
+		v := ease.Quad(float32(t)/float32(steps), xcc.Ease_Type_InOut)
+
+		// 缩放：1.0 → 0.01（避免缩到 0 导致窗口消失闪烁）
+		scale := float32(1.0 - v*0.99)
+
+		// 新窗口大小
+		newW := int32(float32(winW) * scale)
+		newH := int32(float32(winH) * scale)
+
+		// 新窗口中心：从原位置插值到屏幕右下角
+		newCX := int32(float32(winCX) + v*float32(targetCX-winCX))
+		newCY := int32(float32(winCY) + v*float32(targetCY-winCY))
+
+		// 逆推左上角坐标
+		newLeft := newCX - newW/2
+		newTop := newCY - newH/2
+
+		rect := xc.RECT{
+			Left:   newLeft,
+			Top:    newTop,
+			Right:  newLeft + newW,
+			Bottom: newTop + newH,
+		}
+		m.w.SetRect(&rect).Redraw(true)
+		time.Sleep(time.Millisecond * 10)
+	}
+
+	// 动画结束后隐藏窗口
+	m.hideWindow()
 }
