@@ -51,6 +51,7 @@ declare global {
       setHotkey: (hotkey: string) => Promise<void>
       // 系统
       getVersion: () => Promise<string>
+      frontendReady: () => Promise<void>
     }
     __timerTick: (remainingSeconds: number, totalSeconds: number) => void
     __timerFinished: (type: TimerFinishType) => void
@@ -111,4 +112,5 @@ export const bridge = {
   setAutoStart: (enabled: boolean) => callApi<string>("setAutoStart", enabled),
   setHotkey: (hotkey: string) => callApi<void>("setHotkey", hotkey),
   getVersion: () => callApi<string>("getVersion"),
+  frontendReady: () => callApi<void>("frontendReady"),
 }
