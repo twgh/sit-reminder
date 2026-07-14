@@ -76,3 +76,8 @@ build_all.bat
 ```
 
 编译后得到单个exe，内嵌了所有前端资源。
+
+## 界面展示
+
+![主界面](https://s41.ax1x.com/2026/07/14/pmye3gU.png)
+![久坐提醒](https://s41.ax1x.com/2026/07/14/pmyeYDJ.png)
