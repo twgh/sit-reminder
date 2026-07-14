@@ -424,11 +424,24 @@ function SettingsPage({
               <span className="text-sm">呼出窗口快捷键</span>
               <Input
                 type="text"
+                readOnly
                 value={hotkey}
-                onChange={(e) => onHotkeyChange(e.target.value)}
-                onBlur={() => onHotkeyChange(hotkey)}
+                onKeyDown={(e) => {
+                  e.preventDefault()
+                  const key = e.key
+                  // 忽略单独的修饰键
+                  if (["Control", "Shift", "Alt", "Meta"].includes(key)) return
+                  const parts: string[] = []
+                  if (e.ctrlKey || e.metaKey) parts.push("Ctrl")
+                  if (e.shiftKey) parts.push("Shift")
+                  if (e.altKey) parts.push("Alt")
+                  // 将按键转为大写首字母格式
+                  const displayKey = key.length === 1 ? key.toUpperCase() : key
+                  parts.push(displayKey)
+                  onHotkeyChange(parts.join("+"))
+                }}
                 className="h-7 w-28 text-center text-xs"
-                placeholder="Ctrl+Shift+R"
+                placeholder="点击后按键"
               />
             </div>
             <div className="flex items-center justify-between">
