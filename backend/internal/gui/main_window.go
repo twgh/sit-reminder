@@ -191,26 +191,34 @@ func (m *MainWindow) regXcEvents() {
 	})
 }
 
+// frontendReady 前端准备就绪
+func (m *MainWindow) frontendReady() {
+	// 推送配置到 WebView
+	m.pushConfig()
+
+	if firstLoad {
+		// 注册全局热键
+		m.registerGlobalHotkey(m.config.Hotkey)
+		firstLoad = false
+	}
+}
+
+var firstLoad = true // 第一次加载前端
+
 // regWebViewEvents 注册 WebView 事件
 func (m *MainWindow) regWebViewEvents() {
-	firstLoad := true
-	// 导航完成事件
+	// 导航完成事件, 这个是在 frontendReady 之前加载完成的
 	m.wv.Event_NavigationCompleted(func(sender *edge.ICoreWebView2, args *edge.ICoreWebView2NavigationCompletedEventArgs) uintptr {
 		uri := sender.MustGetSource()
 		fmt.Println("导航完成:", uri)
 		if uri == m.getHost()+"/index.html" {
 			if firstLoad {
-				firstLoad = false
 				if m.hideOnStart { // 开机自启时不显示窗口
 					m.wv.Show(false) // 顺带隐藏 WebView, 这会使其进入效率模式
 				} else {
 					m.w.Show()
-					// 注册全局热键
-					m.registerGlobalHotkey(m.config.Hotkey)
 				}
 			}
-
-			m.pushConfig() // 推送配置到 WebView
 		}
 		return 0
 	})
@@ -227,6 +235,9 @@ func (m *MainWindow) bindFunctions() {
 	// ===== 窗口控制 =====
 	m.wv.Bind("api.minimize", func() {
 		m.w.ShowWindow(xcc.SW_MINIMIZE)
+	})
+	m.wv.Bind("api.frontendReady", func() {
+		m.frontendReady()
 	})
 	m.wv.Bind("api.close", func() {
 		m.w.CloseWindow()
@@ -376,7 +387,7 @@ func (m *MainWindow) registerGlobalHotkey(keystr string) {
 	}
 	if !wapi.RegisterHotKey(m.w.GetHWND(), hotkeyIDShow, modifiers, vk) {
 		log.Printf("注册全局热键失败: %s\n", keystr)
-		m.wv.Eval(fmt.Sprintf("window.__hotkeyError && __hotkeyError('注册热键失败，可能与其它程序冲突: %s')", keystr))
+		m.wv.Eval(fmt.Sprintf("window.__hotkeyError && __hotkeyError('注册热键失败: %s')", keystr))
 	}
 }
 
@@ -397,9 +408,17 @@ func (m *MainWindow) updateTrayTooltip() {
 	sec := rem % 60
 	var tip string
 	if tt == TimerActivity {
-		tip = fmt.Sprintf("运动结束提醒 - 剩余 %d 分 %d 秒", min, sec)
+		if min > 0 {
+			tip = fmt.Sprintf("运动结束提醒 - 剩余 %d 分 %d 秒", min, sec)
+		} else {
+			tip = fmt.Sprintf("运动结束提醒 - 剩余 %d 秒", sec)
+		}
 	} else {
-		tip = fmt.Sprintf("久坐提醒 - 剩余 %d 分 %d 秒", min, sec)
+		if min > 0 {
+			tip = fmt.Sprintf("久坐提醒 - 剩余 %d 分 %d 秒", min, sec)
+		} else {
+			tip = fmt.Sprintf("久坐提醒 - 剩余 %d 秒", sec)
+		}
 	}
 	m.tray.SetTips(tip).Modify()
 }
