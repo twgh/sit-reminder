@@ -490,7 +490,7 @@ export function App() {
   const [alwaysOnTop, setAlwaysOnTop] = useState(true)
   const [themeMode, setThemeMode] = useState("跟随系统")
   const [autoStart, setAutoStart] = useState(false)
-  const [hotkey, setHotkey] = useState("Ctrl+Shift+R")
+  const [hotkey, setHotkey] = useState("Shift+Alt+Q")
   const [appVersion, setAppVersion] = useState("")
 
   // 跟踪最新的活动时长，供 __timerFinished 回调读取，避免闭包陈旧
@@ -540,7 +540,7 @@ export function App() {
       setAlwaysOnTop(config.alwaysOnTop !== false)
       setThemeMode(config.themeMode || "跟随系统")
       setAutoStart(!!config.autoStart)
-      setHotkey(config.hotkey || "Ctrl+Shift+R")
+      setHotkey(config.hotkey || "Shift+Alt+Q")
       // 同步主题模式
       setTheme(THEME_CN_TO_EN[config.themeMode] || "system")
     }
@@ -579,7 +579,7 @@ export function App() {
         setAlwaysOnTop(config.alwaysOnTop !== false)
         setThemeMode(config.themeMode || "跟随系统")
         setAutoStart(!!config.autoStart)
-        setHotkey(config.hotkey || "Ctrl+Shift+R")
+        setHotkey(config.hotkey || "Shift+Alt+Q")
         // 同步主题模式
         setTheme(THEME_CN_TO_EN[config.themeMode] || "system")
       }

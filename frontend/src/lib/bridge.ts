@@ -10,7 +10,7 @@ export interface AppConfig {
   alwaysOnTop: boolean
   themeMode: string // "浅色" | "深色" | "跟随系统"
   autoStart: boolean
-  hotkey: string // 全局呼出快捷键, 默认 "Ctrl+Shift+R"
+  hotkey: string // 全局呼出快捷键, 默认 "Shift+Alt+Q"
 }
 
 export type TimerStatus = "idle" | "running" | "paused" | "finished"

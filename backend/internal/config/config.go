@@ -18,7 +18,7 @@ type AppConfig struct {
 	AlwaysOnTop          bool   `yaml:"always_on_top" json:"alwaysOnTop"`                   // 窗口总在最前
 	ThemeMode            string `yaml:"theme_mode" json:"themeMode"`                        // 主题模式: "浅色" | "深色" | "跟随系统"
 	AutoStart            bool   `yaml:"auto_start" json:"autoStart"`                        // 开机自启
-	Hotkey               string `yaml:"hotkey" json:"hotkey"`                               // 全局呼出热键, 默认 "Ctrl+Shift+R"
+	Hotkey               string `yaml:"hotkey" json:"hotkey"`                               // 全局呼出热键, 默认 "Shift+Alt+Q"
 }
 
 func NewAppConfig() *AppConfig {
@@ -30,7 +30,7 @@ func NewAppConfig() *AppConfig {
 		Volume:               1000,
 		AlwaysOnTop:          true,
 		ThemeMode:            "跟随系统",
-		Hotkey:               "Ctrl+Shift+R",
+		Hotkey:               "Shift+Alt+Q",
 	}
 }
 
