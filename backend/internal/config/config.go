@@ -16,8 +16,9 @@ type AppConfig struct {
 	Volume               int    `yaml:"volume" json:"volume"`                               // 播放音量, 0-1000
 	AutoHide             bool   `yaml:"auto_hide" json:"autoHide"`                          // 开始提醒倒计时后隐藏窗口
 	AlwaysOnTop          bool   `yaml:"always_on_top" json:"alwaysOnTop"`                   // 窗口总在最前
-	ThemeMode            string `yaml:"theme_mode" json:"themeMode"`                          // 主题模式: "dark" | "light" | "system"
+	ThemeMode            string `yaml:"theme_mode" json:"themeMode"`                        // 主题模式: "浅色" | "深色" | "跟随系统"
 	AutoStart            bool   `yaml:"auto_start" json:"autoStart"`                        // 开机自启
+	Hotkey               string `yaml:"hotkey" json:"hotkey"`                               // 全局呼出热键, 默认 "Ctrl+Shift+R"
 }
 
 func NewAppConfig() *AppConfig {
@@ -28,7 +29,8 @@ func NewAppConfig() *AppConfig {
 		ActivityMinutes:      5,
 		Volume:               1000,
 		AlwaysOnTop:          true,
-		ThemeMode:             "system",
+		ThemeMode:            "跟随系统",
+		Hotkey:               "Ctrl+Shift+R",
 	}
 }
 

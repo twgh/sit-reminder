@@ -12,6 +12,7 @@ import (
 
 	"github.com/twgh/sit-reminder/internal/config"
 	"github.com/twgh/sit-reminder/internal/g"
+	"github.com/twgh/sit-reminder/internal/utils"
 	"github.com/twgh/xcgui/common"
 	"github.com/twgh/xcgui/ease"
 	"github.com/twgh/xcgui/edge"
@@ -38,6 +39,8 @@ const (
 	TimerSnooze                     // 稍后提醒
 	TimerActivity                   // 活动倒计时
 )
+
+const hotkeyIDShow int32 = 1 // 全局呼出窗口热键ID
 
 type MainWindow struct {
 	edg    *edge.Edge
@@ -104,7 +107,6 @@ func NewMainWindow(edg *edge.Edge, hideOnStart bool) *MainWindow {
 	m.w.EnableDragBorder(false)
 	// 设置为透明窗口
 	m.w.SetTransparentType(xcc.Window_Transparent_Shaped)
-
 	// 根据配置设置窗口置顶
 	m.applyAlwaysOnTop(m.config.AlwaysOnTop)
 
@@ -115,7 +117,6 @@ func NewMainWindow(edg *edge.Edge, hideOnStart bool) *MainWindow {
 	// 设置任务栏预览窗口左上角的图标, 使用24x24尺寸, 也会影响任务管理器里的图标
 	hIcon24 := wapi.LoadImageW(hMod, common.StrPtr("APPICON"), wapi.IMAGE_ICON, 24, 24, wapi.LR_SHARED)
 	m.w.SetSmallIcon(hIcon24)
-
 	// 设置大图标, 会影响任务栏图标, Alt+Tab 窗口图标
 	m.w.SetBigIcon(hIconApp)
 
@@ -126,6 +127,8 @@ func NewMainWindow(edg *edge.Edge, hideOnStart bool) *MainWindow {
 
 	// 注册炫彩事件
 	m.regXcEvents()
+	// 注册全局热键
+	m.registerGlobalHotkey(m.config.Hotkey)
 
 	if !g.IsDebug() {
 		m.setupEmbedFS()
@@ -165,6 +168,16 @@ func (m *MainWindow) regXcEvents() {
 			m.activateWindow()
 		case xcc.WM_RBUTTONDOWN: // 鼠标右键按下
 			m.showTrayMenu()
+		}
+		return 0
+	})
+
+	// 窗口消息过程事件
+	m.w.AddEvent_WindProc(func(hWindow int, message uint32, wParam, lParam uintptr, pbHandled *bool) int {
+		if message == wapi.WM_HOTKEY { // 热键消息
+			if int32(wParam) == hotkeyIDShow {
+				m.activateWindow()
+			}
 		}
 		return 0
 	})
@@ -311,6 +324,12 @@ func (m *MainWindow) bindFunctions() {
 		m.config.ThemeMode = mode
 		m.mu.Unlock()
 	})
+	m.wv.Bind("api.setHotkey", func(hotkey string) {
+		m.mu.Lock()
+		m.config.Hotkey = hotkey
+		m.mu.Unlock()
+		m.registerGlobalHotkey(hotkey)
+	})
 	m.wv.Bind("api.setAutoStart", func(enabled bool) string {
 		m.mu.Lock()
 		m.config.AutoStart = enabled
@@ -332,6 +351,21 @@ func (m *MainWindow) bindFunctions() {
 	m.wv.Bind("api.getVersion", func() string {
 		return g.Version
 	})
+}
+
+// registerGlobalHotkey 注册（或重新注册）全局热键.
+func (m *MainWindow) registerGlobalHotkey(keystr string) {
+	// 先注销旧的
+	wapi.UnregisterHotKey(m.w.GetHWND(), hotkeyIDShow)
+
+	modifiers, vk, err := utils.ParseHotkey(keystr)
+	if err != nil {
+		log.Println("解析热键失败:", err)
+		return
+	}
+	if !wapi.RegisterHotKey(m.w.GetHWND(), hotkeyIDShow, modifiers, vk) {
+		log.Printf("注册全局热键失败: %s\n", keystr)
+	}
 }
 
 // activateWindow 激活窗口到前台

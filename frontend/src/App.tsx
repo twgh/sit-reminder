@@ -33,6 +33,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 
 const DEFAULT_RINGTONE = "未设置"
 
+// 主题模式映射: 中文 → 英文
+const THEME_CN_TO_EN: Record<string, "dark" | "light" | "system"> = {
+  "浅色": "light",
+  "深色": "dark",
+  "跟随系统": "system",
+}
+
 function formatTime(totalSeconds: number): string {
   const m = Math.floor(totalSeconds / 60)
   const s = totalSeconds % 60
@@ -125,14 +132,17 @@ function NotificationOverlay({
           {/* 活动时间设置 */}
           <div className="flex items-center justify-center gap-2">
             <span className="text-sm text-muted-foreground">活动时间:</span>
-            <Input
-              type="number"
-              min={1}
-              max={99}
-              value={activityMinutes}
-              onChange={(e) => setActivityMinutes(Math.max(1, Math.min(99, parseInt(e.target.value) || 1)))}
-              className="w-20 text-center"
-            />
+            <Tooltip>
+              <TooltipTrigger render={<Input
+                type="number"
+                min={1}
+                max={99}
+                value={activityMinutes}
+                onChange={(e) => setActivityMinutes(Math.max(1, Math.min(99, parseInt(e.target.value) || 1)))}
+                className="w-20 text-center"
+              />} />
+              <TooltipContent>快捷键 <kbd data-slot="kbd">W</kbd> / <kbd data-slot="kbd">S</kbd> 调整分钟</TooltipContent>
+            </Tooltip>
             <span className="text-sm text-muted-foreground">分钟</span>
           </div>
           <Tooltip>
@@ -229,6 +239,7 @@ function SettingsPage({
   alwaysOnTop,
   themeMode,
   autoStart,
+  hotkey,
   appVersion,
   onSelectRingtone,
   onTestRingtone,
@@ -242,6 +253,7 @@ function SettingsPage({
   onAlwaysOnTopChange,
   onThemeModeChange,
   onAutoStartChange,
+  onHotkeyChange,
   onBack,
 }: {
   ringtonePath: string
@@ -254,6 +266,7 @@ function SettingsPage({
   alwaysOnTop: boolean
   themeMode: string
   autoStart: boolean
+  hotkey: string
   appVersion: string
   onSelectRingtone: () => void
   onTestRingtone: () => void
@@ -267,6 +280,7 @@ function SettingsPage({
   onAlwaysOnTopChange: (enabled: boolean) => void
   onThemeModeChange: (mode: string) => void
   onAutoStartChange: (enabled: boolean) => void
+  onHotkeyChange: (value: string) => void
   onBack: () => void
 }) {
   // 音量在 UI 上使用 0-100 的百分比，配置中存储 0-1000
@@ -396,15 +410,26 @@ function SettingsPage({
             <div className="flex items-center justify-between">
               <span className="text-sm">主题模式</span>
               <Select value={themeMode} onValueChange={(v) => v && onThemeModeChange(v)}>
-                <SelectTrigger className="w-28" size="sm">
+                <SelectTrigger className="h-7 w-28 text-xs" size="sm">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent align="end" className="w-28 min-w-28">
-                  <SelectItem value="light">浅色</SelectItem>
-                  <SelectItem value="dark">深色</SelectItem>
-                  <SelectItem value="system">跟随系统</SelectItem>
+                  <SelectItem value="浅色">浅色</SelectItem>
+                  <SelectItem value="深色">深色</SelectItem>
+                  <SelectItem value="跟随系统">跟随系统</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm">呼出窗口快捷键</span>
+              <Input
+                type="text"
+                value={hotkey}
+                onChange={(e) => onHotkeyChange(e.target.value)}
+                onBlur={() => onHotkeyChange(hotkey)}
+                className="h-7 w-28 text-center text-xs"
+                placeholder="Ctrl+Shift+R"
+              />
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm">开机自启</span>
@@ -450,8 +475,9 @@ export function App() {
   const [volume, setVolume] = useState(1000)
   const [autoHide, setAutoHide] = useState(false)
   const [alwaysOnTop, setAlwaysOnTop] = useState(true)
-  const [themeMode, setThemeMode] = useState("system")
+  const [themeMode, setThemeMode] = useState("跟随系统")
   const [autoStart, setAutoStart] = useState(false)
+  const [hotkey, setHotkey] = useState("Ctrl+Shift+R")
   const [appVersion, setAppVersion] = useState("")
 
   // 跟踪最新的活动时长，供 __timerFinished 回调读取，避免闭包陈旧
@@ -499,10 +525,11 @@ export function App() {
       }
       setAutoHide(!!config.autoHide)
       setAlwaysOnTop(config.alwaysOnTop !== false)
-      setThemeMode(config.themeMode || "system")
+      setThemeMode(config.themeMode || "跟随系统")
       setAutoStart(!!config.autoStart)
+      setHotkey(config.hotkey || "Ctrl+Shift+R")
       // 同步主题模式
-      setTheme((config.themeMode as "dark" | "light" | "system") || "system")
+      setTheme(THEME_CN_TO_EN[config.themeMode] || "system")
     }
 
     window.__activityStarted = (_minutes: number) => {
@@ -533,10 +560,11 @@ export function App() {
         }
         setAutoHide(!!config.autoHide)
         setAlwaysOnTop(config.alwaysOnTop !== false)
-        setThemeMode(config.themeMode || "system")
+        setThemeMode(config.themeMode || "跟随系统")
         setAutoStart(!!config.autoStart)
+        setHotkey(config.hotkey || "Ctrl+Shift+R")
         // 同步主题模式
-        setTheme((config.themeMode as "dark" | "light" | "system") || "system")
+        setTheme(THEME_CN_TO_EN[config.themeMode] || "system")
       }
     })
 
@@ -744,11 +772,18 @@ export function App() {
   // 修改主题模式
   const handleThemeModeChange = useCallback(async (mode: string) => {
     setThemeMode(mode)
-    // 同步主题
-    setTheme(mode as "dark" | "light" | "system")
+    // 同步主题（中文 → 英文映射）
+    setTheme(THEME_CN_TO_EN[mode] || "system")
     await bridge.setThemeMode(mode)
     await bridge.saveConfig()
   }, [setTheme])
+
+  // 修改全局呼出热键
+  const handleHotkeyChange = useCallback(async (value: string) => {
+    setHotkey(value)
+    await bridge.setHotkey(value)
+    await bridge.saveConfig()
+  }, [])
 
   // 修改开机自启
   const handleAutoStartChange = useCallback(async (enabled: boolean) => {
@@ -835,6 +870,7 @@ export function App() {
                 alwaysOnTop={alwaysOnTop}
                 themeMode={themeMode}
                 autoStart={autoStart}
+                hotkey={hotkey}
                 appVersion={appVersion}
                 onSelectRingtone={handleSelectRingtone}
                 onTestRingtone={handleTestRingtone}
@@ -848,6 +884,7 @@ export function App() {
                 onAlwaysOnTopChange={handleAlwaysOnTopChange}
                 onThemeModeChange={handleThemeModeChange}
                 onAutoStartChange={handleAutoStartChange}
+                onHotkeyChange={handleHotkeyChange}
                 onBack={() => setShowSettings(false)}
               />
             ) : (
@@ -907,16 +944,21 @@ export function App() {
                         ))}
                       </div>
                       <div className="flex items-center gap-2">
-                        <Input
-                          type="number"
-                          min={1}
-                          max={999}
-                          value={intervalMinutes}
-                          disabled={status === "running"}
-                          onChange={(e) => setIntervalMinutes(parseInt(e.target.value) || 0)}
-                          onBlur={() => handleIntervalChange(intervalMinutes)}
-                          className="w-24 text-center"
-                        />
+                        <Tooltip>
+                          <TooltipTrigger render={<Input
+                            type="number"
+                            min={1}
+                            max={999}
+                            value={intervalMinutes}
+                            disabled={status === "running"}
+                            onChange={(e) => setIntervalMinutes(parseInt(e.target.value) || 0)}
+                            onBlur={() => handleIntervalChange(intervalMinutes)}
+                            className="w-24 text-center"
+                          />} />
+                          {status === "idle" && (
+                            <TooltipContent>快捷键 <kbd data-slot="kbd">W</kbd> / <kbd data-slot="kbd">S</kbd> 调整分钟</TooltipContent>
+                          )}
+                        </Tooltip>
                         <span className="text-sm text-muted-foreground">分钟</span>
                         {status === "idle" && (
                           <span className="ml-auto text-xs text-muted-foreground">失焦自动保存</span>

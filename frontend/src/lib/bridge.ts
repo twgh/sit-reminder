@@ -8,8 +8,9 @@ export interface AppConfig {
   volume: number
   autoHide: boolean
   alwaysOnTop: boolean
-  themeMode: string // "dark" | "light" | "system"
+  themeMode: string // "浅色" | "深色" | "跟随系统"
   autoStart: boolean
+  hotkey: string // 全局呼出快捷键, 默认 "Ctrl+Shift+R"
 }
 
 export type TimerStatus = "idle" | "running" | "paused" | "finished"
@@ -47,6 +48,7 @@ declare global {
       setAlwaysOnTop: (enabled: boolean) => Promise<void>
       setThemeMode: (mode: string) => Promise<void>
       setAutoStart: (enabled: boolean) => Promise<string>
+      setHotkey: (hotkey: string) => Promise<void>
       // 系统
       getVersion: () => Promise<string>
     }
@@ -106,5 +108,6 @@ export const bridge = {
   setAlwaysOnTop: (enabled: boolean) => callApi<void>("setAlwaysOnTop", enabled),
   setThemeMode: (mode: string) => callApi<void>("setThemeMode", mode),
   setAutoStart: (enabled: boolean) => callApi<string>("setAutoStart", enabled),
+  setHotkey: (hotkey: string) => callApi<void>("setHotkey", hotkey),
   getVersion: () => callApi<string>("getVersion"),
 }
