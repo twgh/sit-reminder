@@ -8,6 +8,18 @@ import (
 	"github.com/twgh/xcgui/xcc"
 )
 
+var procGetForegroundWindow = wapi.User32.NewProc("GetForegroundWindow")
+
+// GetForegroundWindow 检索前台窗口的句柄，用户当前正在使用的窗口。
+//   - 系统为创建前台窗口的线程分配的优先级略高于其他线程的优先级。
+//   - 在某些情况下（例如，当窗口丢失激活时），前台窗口可以为 NULL。
+//
+// 详情: https://learn.microsoft.com/zh-cn/windows/win32/api/winuser/nf-winuser-GetForegroundWindow.
+func GetForegroundWindow() uintptr {
+	r, _, _ := procGetForegroundWindow.Call()
+	return r
+}
+
 // ParseHotkey 解析热键字符串, 如 "Ctrl+Shift+R", 返回 (modifiers, vkCode).
 func ParseHotkey(s string) (uint32, uint32, error) {
 	var modifiers uint32
