@@ -176,7 +176,11 @@ func (m *MainWindow) regXcEvents() {
 	m.w.AddEvent_WindProc(func(hWindow int, message uint32, wParam, lParam uintptr, pbHandled *bool) int {
 		if message == wapi.WM_HOTKEY { // 热键消息
 			if int32(wParam) == hotkeyIDShow {
-				m.activateWindow()
+				if utils.GetForegroundWindow() == m.w.GetHWND() {
+					m.animateToTray()
+				} else {
+					m.activateWindow()
+				}
 			}
 		}
 		return 0
