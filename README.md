@@ -2,6 +2,8 @@
 
 基于 Go + XCGUI (WebView2) + React + shadcn/ui 的桌面久坐提醒应用。
 
+一个基于 [XCGUI](https://github.com/twgh/xcgui) 的实战案例。
+
 ## 功能
 
 - **时间设置**: 间隔时间输入（默认40分钟），支持步进器(-10/-5/+5/+10)，失焦自动保存到 YAML 配置文件
@@ -63,8 +65,6 @@ cd scripts
 # 启动前端和后端
 dev_run_all.bat
 ```
-
-Go 后端代码中 `g.IsDebug() = true` 时会连接 `http://localhost:5173`。
 
 ## 生产构建
 
