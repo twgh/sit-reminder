@@ -8,7 +8,10 @@ import (
 	"github.com/twgh/xcgui/xcc"
 )
 
-var procGetForegroundWindow = wapi.User32.NewProc("GetForegroundWindow")
+var (
+	procGetForegroundWindow = wapi.User32.NewProc("GetForegroundWindow")
+	procIsIconic            = wapi.User32.NewProc("IsIconic")
+)
 
 // GetForegroundWindow 检索前台窗口的句柄，用户当前正在使用的窗口。
 //   - 系统为创建前台窗口的线程分配的优先级略高于其他线程的优先级。
@@ -18,6 +21,16 @@ var procGetForegroundWindow = wapi.User32.NewProc("GetForegroundWindow")
 func GetForegroundWindow() uintptr {
 	r, _, _ := procGetForegroundWindow.Call()
 	return r
+}
+
+// IsIconic 判断窗口是否已最小化。
+//
+// 详情: https://learn.microsoft.com/zh-cn/windows/win32/api/winuser/nf-winuser-IsIconic.
+//
+// hWnd: 窗口句柄。
+func IsIconic(hWnd uintptr) bool {
+	r, _, _ := procIsIconic.Call(hWnd)
+	return r != 0
 }
 
 // ParseHotkey 解析热键字符串, 如 "Ctrl+Shift+R", 返回 (modifiers, vkCode).
