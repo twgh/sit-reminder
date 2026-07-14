@@ -176,10 +176,16 @@ func (m *MainWindow) regXcEvents() {
 	m.w.AddEvent_WindProc(func(hWindow int, message uint32, wParam, lParam uintptr, pbHandled *bool) int {
 		if message == wapi.WM_HOTKEY { // 热键消息
 			if int32(wParam) == hotkeyIDShow {
-				if utils.GetForegroundWindow() == m.w.GetHWND() {
-					m.animateToTray()
+				// 窗口可见且未最小化
+				if wapi.IsWindowVisible(m.w.GetHWND()) && !utils.IsIconic(m.w.GetHWND()) {
+					// 置顶时用户一定看得到；非置顶时仅前台窗口才隐藏
+					if m.config.AlwaysOnTop || utils.GetForegroundWindow() == m.w.GetHWND() {
+						m.animateToTray()
+					} else {
+						m.activateWindow() // 非置顶被遮挡 → 弹出到前台
+					}
 				} else {
-					m.activateWindow()
+					m.activateWindow() // 隐藏或最小化 → 弹出
 				}
 			}
 		}
