@@ -382,12 +382,12 @@ func (m *MainWindow) registerGlobalHotkey(keystr string) {
 	modifiers, vk, err := utils.ParseHotkey(keystr)
 	if err != nil {
 		log.Println("解析热键失败:", err)
-		m.wv.Eval(fmt.Sprintf("window.__hotkeyError && __hotkeyError('热键格式不正确: %s')", keystr))
+		m.wv.Eval(fmt.Sprintf("window.__toastError && __toastError('热键格式不正确: %s')", keystr))
 		return
 	}
 	if !wapi.RegisterHotKey(m.w.GetHWND(), hotkeyIDShow, modifiers, vk) {
 		log.Printf("注册全局热键失败: %s\n", keystr)
-		m.wv.Eval(fmt.Sprintf("window.__hotkeyError && __hotkeyError('注册热键失败: %s')", keystr))
+		m.wv.Eval(fmt.Sprintf("window.__toastError && __toastError('注册热键失败: %s')", keystr))
 	}
 }
 
@@ -470,7 +470,7 @@ func (m *MainWindow) applyAlwaysOnTop(enabled bool) {
 func (m *MainWindow) setAutoStart(enabled bool) error {
 	exePath, err := os.Executable()
 	if err != nil {
-		return fmt.Errorf("获取可执行文件路径失败: %w", err)
+		return fmt.Errorf("获取程序路径失败: %w", err)
 	}
 
 	if enabled {

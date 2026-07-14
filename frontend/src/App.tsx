@@ -558,8 +558,8 @@ export function App() {
       setShowSettings(true)
     }
 
-    window.__hotkeyError = (message: string) => {
-      toast.error(message, { duration: 5000 })
+    window.__toastError = (message: string) => {
+      toast.error(message, { duration: 2000 })
     }
 
     bridge.getConfig().then((config) => {
@@ -593,7 +593,20 @@ export function App() {
 
     return () => {
       cleanup()
+      bridge.frontendReady()
     }
+  }, [])
+
+  useEffect(() => {
+     // 点击 toast 主体关闭通知（避开内部的按钮/链接）
+    const handleClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement
+      if (target.closest('[data-sonner-toast]') && !target.closest('button, a, [role="button"]')) {
+        toast.dismiss()
+      }
+    }
+    document.addEventListener('click', handleClick)
+    return () => document.removeEventListener('click', handleClick)
   }, [])
 
   // 启动计时（预置剩余秒数防闪屏）
@@ -808,7 +821,7 @@ export function App() {
     const errMsg = await bridge.setAutoStart(enabled)
     if (errMsg) {
       setAutoStart(false) // 失败时回滚 UI
-      toast.error(errMsg)
+      toast.error(errMsg, { duration: 2000 })
       return
     }
     await bridge.saveConfig()
@@ -873,7 +886,8 @@ export function App() {
               </div>
             </div>
 
-            <Toaster richColors closeButton />
+            {/* 当窗口宽度小于 600px 就要使用 mobileOffset */}
+            <Toaster position="top-center" mobileOffset={{ top: '52px', right: "80px", left: "80px" }} />
 
             {showSettings ? (
               <SettingsPage
