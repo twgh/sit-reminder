@@ -60,7 +60,7 @@ type MainWindow struct {
 
 	origWidth  int32    // 窗口原始宽度
 	origHeight int32    // 窗口原始高度
-	lastPos    xc.POINT // 窗口上一次的位置
+	lastPos    xc.POINT // 窗口上一次的位置, -999 代表无效位置
 
 	hideOnStart bool // -hide 命令行参数: 启动后不显示窗口
 }
@@ -78,7 +78,7 @@ func NewMainWindow(edg *edge.Edge, hideOnStart bool) *MainWindow {
 		state:       StateIdle,
 		origWidth:   480,
 		origHeight:  536,
-		lastPos:     xc.POINT{X: 0, Y: 0},
+		lastPos:     xc.POINT{X: -999, Y: -999},
 	}
 
 	var err error
@@ -337,11 +337,17 @@ func (m *MainWindow) bindFunctions() {
 // activateWindow 激活窗口到前台
 func (m *MainWindow) activateWindow() {
 	m.wv.Show() // 显示 WebView
-	// 恢复窗口原始大小和位置（动画过程中可能被缩放过）
-	m.w.SetRect(&xc.RECT{Left: m.lastPos.X, Top: m.lastPos.Y, Right: m.lastPos.X + m.origWidth, Bottom: m.lastPos.Y + m.origHeight})
+	if m.lastPos.X != -999 && m.lastPos.Y != -999 {
+		// 恢复窗口原始大小和位置（动画过程中可能被缩放过）
+		m.w.SetRect(&xc.RECT{Left: m.lastPos.X, Top: m.lastPos.Y, Right: m.lastPos.X + m.origWidth, Bottom: m.lastPos.Y + m.origHeight})
+		// 设置过位置后, 将上次位置重置为无效值
+		m.lastPos.X = -999
+		m.lastPos.Y = -999
+	}
+
 	m.w.ShowWindow(xcc.SW_SHOWNORMAL)
 	if !m.config.AlwaysOnTop {
-		m.w.SetTop().SetTop(false)
+		m.w.SetTop().SetTop(false) // 当窗口没设置总在最前时, 通过这个使窗口强制到最顶层
 	}
 	// 恢复关闭按钮的 hover 样式: 移除 body 上的禁用 class
 	m.wv.Eval(`document.body.classList.remove('close-hover-disabled')`)
