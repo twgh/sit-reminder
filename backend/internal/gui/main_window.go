@@ -12,13 +12,11 @@ import (
 
 	"github.com/twgh/sit-reminder/internal/config"
 	"github.com/twgh/sit-reminder/internal/g"
-	"github.com/twgh/xcgui/app"
 	"github.com/twgh/xcgui/common"
 	"github.com/twgh/xcgui/ease"
 	"github.com/twgh/xcgui/edge"
 	"github.com/twgh/xcgui/wapi"
 	"github.com/twgh/xcgui/wapi/wutil"
-	"github.com/twgh/xcgui/widget"
 	"github.com/twgh/xcgui/window"
 	"github.com/twgh/xcgui/xc"
 	"github.com/twgh/xcgui/xcc"
@@ -166,31 +164,7 @@ func (m *MainWindow) regXcEvents() {
 		case xcc.WM_LBUTTONDOWN: // 鼠标左键按下
 			m.activateWindow()
 		case xcc.WM_RBUTTONDOWN: // 鼠标右键按下
-			// 创建菜单
-			menu := widget.NewMenu()
-			// 一级菜单
-			menu.AddItem(100, "设置", 0, xcc.Menu_Item_Flag_Normal)
-			menu.AddItem(99999, "退出", 0, xcc.Menu_Item_Flag_Normal)
-
-			// 获取鼠标光标的屏幕坐标
-			var pt wapi.POINT
-			wapi.GetCursorPos(&pt)
-			// 弹出菜单
-			menu.Popup(m.w.GetHWND(), pt.X, pt.Y, 0, xcc.Menu_Popup_Position_Left_Top)
-		}
-		return 0
-	})
-
-	// 菜单被选择事件
-	m.w.AddEvent_Menu_Select(func(hWindow int, nID int32, pbHandled *bool) int {
-		switch nID {
-		case 100: // 设置
-			m.activateWindow()
-			m.wv.Eval("window.__showSettings && window.__showSettings()")
-
-		case 99999: // 退出
-			m.w.DestroyWindow() // 销毁窗口
-			app.PostQuitMessage(0)
+			m.showTrayMenu()
 		}
 		return 0
 	})
