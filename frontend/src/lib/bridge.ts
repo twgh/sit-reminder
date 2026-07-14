@@ -59,6 +59,7 @@ declare global {
     __activityStarted: (minutes: number) => void
     __timerTypeChanged: (type: TimerType) => void
     __showSettings: () => void
+    __hotkeyError: (message: string) => void
   }
 }
 

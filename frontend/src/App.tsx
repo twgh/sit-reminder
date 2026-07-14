@@ -141,7 +141,7 @@ function NotificationOverlay({
                 onChange={(e) => setActivityMinutes(Math.max(1, Math.min(99, parseInt(e.target.value) || 1)))}
                 className="w-20 text-center"
               />} />
-              <TooltipContent>快捷键 <kbd data-slot="kbd">W</kbd> / <kbd data-slot="kbd">S</kbd> 调整分钟</TooltipContent>
+              <TooltipContent>快捷键 <kbd data-slot="kbd">W</kbd> / <kbd data-slot="kbd">S</kbd> 调整分钟，临时调整，不保存配置</TooltipContent>
             </Tooltip>
             <span className="text-sm text-muted-foreground">分钟</span>
           </div>
@@ -556,6 +556,10 @@ export function App() {
 
     window.__showSettings = () => {
       setShowSettings(true)
+    }
+
+    window.__hotkeyError = (message: string) => {
+      toast.error(message, { duration: 5000 })
     }
 
     bridge.getConfig().then((config) => {

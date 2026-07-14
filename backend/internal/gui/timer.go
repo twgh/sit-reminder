@@ -86,6 +86,8 @@ func (m *MainWindow) stopTimer() {
 		m.evalTimerTypeChanged(TimerSedentary)
 		// 通知前端重置进度显示
 		m.wv.Eval(fmt.Sprintf("window.__timerTick && __timerTick(%d, %d)", m.remaining, m.total))
+		// 托盘提示恢复默认
+		m.updateTrayTooltip()
 	})
 }
 
@@ -228,6 +230,7 @@ func (m *MainWindow) runTimerLoop() {
 
 			xc.UI(func() {
 				m.wv.Eval(fmt.Sprintf("window.__timerTick && __timerTick(%d, %d)", rem, tot))
+				m.updateTrayTooltip()
 			})
 		}
 	}

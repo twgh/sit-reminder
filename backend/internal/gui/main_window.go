@@ -127,8 +127,6 @@ func NewMainWindow(edg *edge.Edge, hideOnStart bool) *MainWindow {
 
 	// 注册炫彩事件
 	m.regXcEvents()
-	// 注册全局热键
-	m.registerGlobalHotkey(m.config.Hotkey)
 
 	if !g.IsDebug() {
 		m.setupEmbedFS()
@@ -207,6 +205,8 @@ func (m *MainWindow) regWebViewEvents() {
 					m.wv.Show(false) // 顺带隐藏 WebView, 这会使其进入效率模式
 				} else {
 					m.w.Show()
+					// 注册全局热键
+					m.registerGlobalHotkey(m.config.Hotkey)
 				}
 			}
 
@@ -371,11 +371,37 @@ func (m *MainWindow) registerGlobalHotkey(keystr string) {
 	modifiers, vk, err := utils.ParseHotkey(keystr)
 	if err != nil {
 		log.Println("解析热键失败:", err)
+		m.wv.Eval(fmt.Sprintf("window.__hotkeyError && __hotkeyError('热键格式不正确: %s')", keystr))
 		return
 	}
 	if !wapi.RegisterHotKey(m.w.GetHWND(), hotkeyIDShow, modifiers, vk) {
 		log.Printf("注册全局热键失败: %s\n", keystr)
+		m.wv.Eval(fmt.Sprintf("window.__hotkeyError && __hotkeyError('注册热键失败，可能与其它程序冲突: %s')", keystr))
 	}
+}
+
+// updateTrayTooltip 根据当前任务状态更新托盘提示文本
+func (m *MainWindow) updateTrayTooltip() {
+	m.mu.Lock()
+	state := m.state
+	tt := m.timerType
+	rem := m.remaining
+	m.mu.Unlock()
+
+	if state != StateRunning {
+		m.tray.SetTips("久坐提醒助手").Modify()
+		return
+	}
+
+	min := rem / 60
+	sec := rem % 60
+	var tip string
+	if tt == TimerActivity {
+		tip = fmt.Sprintf("运动结束提醒 - 剩余 %d 分 %d 秒", min, sec)
+	} else {
+		tip = fmt.Sprintf("久坐提醒 - 剩余 %d 分 %d 秒", min, sec)
+	}
+	m.tray.SetTips(tip).Modify()
 }
 
 // activateWindow 激活窗口到前台
