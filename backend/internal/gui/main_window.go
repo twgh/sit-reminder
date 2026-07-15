@@ -1,7 +1,6 @@
 package gui
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -193,9 +192,6 @@ func (m *MainWindow) regXcEvents() {
 
 // frontendReady 前端准备就绪
 func (m *MainWindow) frontendReady() {
-	// 推送配置到 WebView
-	m.pushConfig()
-
 	if firstLoad {
 		// 注册全局热键
 		m.registerGlobalHotkey(m.config.Hotkey)
@@ -222,12 +218,6 @@ func (m *MainWindow) regWebViewEvents() {
 		}
 		return 0
 	})
-}
-
-// pushConfig 推送配置到 WebView
-func (m *MainWindow) pushConfig() {
-	jsonBytes, _ := json.Marshal(m.config)
-	m.wv.Eval(fmt.Sprintf("window.__configLoaded && __configLoaded(%s)", string(jsonBytes)))
 }
 
 // bindFunctions 绑定函数
