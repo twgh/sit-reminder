@@ -53,6 +53,7 @@
 ## 安装依赖
 
 ```bash
+cd frontend && pnpm install
 cd backend && go mod tidy
 ```
 
