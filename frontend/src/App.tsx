@@ -591,9 +591,10 @@ export function App() {
       }
     })
 
+    bridge.frontendReady()
+
     return () => {
       cleanup()
-      bridge.frontendReady()
     }
   }, [])
 
