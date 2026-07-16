@@ -26,6 +26,7 @@
 ├── frontend/          # React 前端
 │   ├── src/
 │   │   ├── App.tsx              # 主界面
+│   │   ├── index.css            # css样式
 │   │   ├── lib/bridge.ts        # Go <-> JS 通信桥接
 │   │   └── components/ui/       # shadcn 组件
 │   ├── README.md                # 前端开发说明
@@ -51,6 +52,22 @@
 ```
 
 ## 安装依赖
+
+**首先确保你电脑上有 [Node.js](https://nodejs.org/zh-cn/download)**
+
+然后安装 pnpm
+
+```
+npm install -g pnpm
+```
+
+**确保电脑上有 go-winres**
+
+```
+go install github.com/tc-hib/go-winres@latest
+```
+
+**最后在项目根目录中执行**
 
 ```bash
 cd frontend && pnpm install
