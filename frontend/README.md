@@ -7,7 +7,7 @@
 要在应用中添加组件，请运行以下命令：
 
 ```bash
-npx shadcn@latest add button
+npx shadcn@4.13.0 add button
 ```
 
 这会将 UI 组件放置在 src/components 目录下。

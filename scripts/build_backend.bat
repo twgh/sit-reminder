@@ -28,7 +28,7 @@ if %errorlevel% neq 0 (
 REM 校验 go-winres 是否可用
 where go-winres >nul 2>nul
 if %errorlevel% neq 0 (
-    echo 未找到 go-winres, 请先执行: go install github.com/twgh/go-winres@latest
+    echo 未找到 go-winres, 请先执行: go install github.com/tc-hib/go-winres@latest
     pause
     exit /b 1
 )
